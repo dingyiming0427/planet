@@ -106,7 +106,7 @@ def reacher_easy(config, params):
 def gym_cheetah(config, params):
   # Works with `isolate_envs: process`.
   action_repeat = params.get('action_repeat', 1)
-  max_length = 1000 // action_repeat
+  max_length = 100 // action_repeat
   state_components = ['reward', 'state']
   env_ctor = tools.bind(
       _gym_env, action_repeat, config.batch_shape[1], max_length,
@@ -123,6 +123,14 @@ def gym_racecar(config, params):
       _gym_env, action_repeat, config.batch_shape[1], max_length,
       'CarRacing-v0', obs_is_image=True)
   return Task('gym_racing', env_ctor, max_length, state_components)
+
+
+def pt_dis(config, params):
+  action_repeat = params.get('action_repeat', 1)
+  max_length = 100
+  state_components = ['reward', 'state']
+  env_ctor = tools.bind(_gym_env, action_repeat, config.batch_shape[1], max_length, 'pt_dis', gym=False)
+  return Task('pt_dis', env_ctor, max_length, state_components)
 
 
 def _dm_control_env(
@@ -146,9 +154,15 @@ def _dm_control_env(
   return env
 
 
-def _gym_env(action_repeat, min_length, max_length, name, obs_is_image=False):
-  import gym
-  env = gym.make(name)
+def _gym_env(action_repeat, min_length, max_length, name, obs_is_image=False,
+             gym=True):
+  if gym == True:
+    import gym
+    env = gym.make(name)
+  else:
+    if name == 'pt_dis':
+      from planet.envs.point_pos_distractor import PointEnv
+      env = PointEnv(random_reset=False)
   env = control.wrappers.ActionRepeat(env, action_repeat)
   env = control.wrappers.NormalizeActions(env)
   env = control.wrappers.MinimumDuration(env, min_length)

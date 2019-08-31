@@ -46,6 +46,15 @@ def cartpole_balance(config, params):
       params)
   return Task('cartpole_balance', env_ctor, max_length, state_components)
 
+def cartpole_balance_distractor(config, params):
+  action_repeat = params.get('action_repeat', 8)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'cartpole_distractor', 'balance_distractor',
+      params)
+  return Task('cartpole_balance_distractor', env_ctor, max_length, state_components)
+
 
 def cartpole_swingup(config, params):
   action_repeat = params.get('action_repeat', 8)
@@ -73,6 +82,14 @@ def cheetah_run(config, params):
   env_ctor = tools.bind(
       _dm_control_env, action_repeat, max_length, 'cheetah', 'run', params)
   return Task('cheetah_run', env_ctor, max_length, state_components)
+
+def cheetah_run_distractor(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'cheetah_distractor', 'run', params)
+  return Task('cheetah_run_distractor', env_ctor, max_length, state_components)
 
 
 def cup_catch(config, params):

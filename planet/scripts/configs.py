@@ -48,6 +48,15 @@ def default(config, params):
   config = _training_schedule(config, params)
   return config
 
+def cpc(config, params):
+  config.debug = False
+  config.loss_scales = tools.AttrDict(_unlocked=True)
+  config = _data_processing(config, params)
+  config = _model_components(config, params)
+  config = _tasks(config, params)
+  config = _loss_functions(config, params, cpc=True)
+  config = _training_schedule(config, params)
+  return config
 
 def debug(config, params):
   defaults = tools.AttrDict(_unlocked=True)
@@ -175,16 +184,20 @@ def _tasks(config, params):
   return config
 
 
-def _loss_functions(config, params):
+def _loss_functions(config, params, cpc=False):
   for head in config.gradient_heads:
     assert head in config.heads, head
   config.loss_scales.divergence = params.get('divergence_scale', 1.0)
   config.loss_scales.global_divergence = params.get('global_div_scale', 0.0)
   config.loss_scales.overshooting = params.get('overshooting_scale', 0.0)
+  if cpc:
+      config.loss_scales.cpc = params.get('cpc', 1.)
   for head in config.heads:
     defaults = {'reward': 10.0}
     scale = defaults[head] if head in defaults else 1.0
     config.loss_scales[head] = params.get(head + '_loss_scale', scale)
+  if cpc:
+    config.loss_scales['image'] = 0.
   config.free_nats = params.get('free_nats', 3.0)
   config.overshooting_distance = params.get('overshooting_distance', 0)
   config.os_stop_posterior_grad = params.get('os_stop_posterior_grad', True)

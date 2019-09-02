@@ -49,6 +49,9 @@ def define_model(data, trainer, config):
     heads[key] = tf.make_template(name, head, **kwargs)
     heads[key](dummy_features)  # Initialize weights.
 
+      # dummy_features = tf.zeros(shape=data['image'].shape[:2].as_list() + dummy_features.shape[-1:].as_list())
+      # heads['cpc'](dummy_features, tf.zeros(shape=data['image'].shape[:2].as_list() + [1024]))
+
   # Apply and optimize model.
   embedded = encoder(data)
   with tf.control_dependencies(dependencies):

@@ -25,6 +25,7 @@ import ruamel.yaml as yaml
 import tensorflow as tf
 
 from planet import control
+from planet import networks
 from planet import tools
 from planet.training import trainer as trainer_
 
@@ -225,6 +226,10 @@ def compute_objectives(posterior, prior, target, graph, config):
       if config.free_nats is not None:
         loss = tf.maximum(0.0, loss - float(config.free_nats))
       objectives.append(Objective('overshooting', loss, min, include, exclude))
+
+    elif name == 'cpc':
+      loss = networks.cpc(features, graph.embedded)
+      objectives.append(Objective('cpc', loss, min, include, exclude))
 
     else:
       logprob = heads[name](features).log_prob(target[name])

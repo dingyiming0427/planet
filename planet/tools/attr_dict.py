@@ -75,6 +75,11 @@ class AttrDict(dict):  # collections.OrderedDict
       items.append('{}: {}'.format(key, self._format_value(value)))
     return '{' + ', '.join(items) + '}'
 
+  def delete(self, attr_name):
+    if attr_name in self:
+      del self[attr_name]
+
+
   def get(self, key, default=None):
     self._touched.add(key)
     if key not in self:

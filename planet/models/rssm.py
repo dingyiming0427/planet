@@ -37,7 +37,7 @@ class RSSM(base.Base):
       v         v
   [h]->[h]  [h]->[h]
       ^ |       ^ :
-     /  v      /  v
+     /  v      /  vz
   (s)  (s)  (s)  (s)
                   ^
                   :
@@ -98,7 +98,7 @@ class RSSM(base.Base):
     hidden = tf.concat([prev_state['sample'], prev_action], -1)
     for _ in range(self._num_layers):
       hidden = tf.layers.dense(hidden, **self._kwargs)
-    belief, rnn_state = self._cell(hidden, prev_state['rnn_state'])
+    belief, rnn_state = self._cell(hidden, prev_state['rnn_state']) # belief is output, rnn_state is hidenstate
     if self._future_rnn:
       hidden = belief
     for _ in range(self._num_layers):
@@ -138,3 +138,4 @@ class RSSM(base.Base):
         'belief': prior['belief'],
         'rnn_state': prior['rnn_state'],
     }
+

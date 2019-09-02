@@ -191,7 +191,7 @@ def _loss_functions(config, params, cpc=False):
   config.loss_scales.global_divergence = params.get('global_div_scale', 0.0)
   config.loss_scales.overshooting = params.get('overshooting_scale', 0.0)
   if cpc:
-      config.loss_scales.cpc = params.get('cpc', 1.)
+      config.loss_scales.cpc = params.get('cpc_scale', 1.)
   for head in config.heads:
     defaults = {'reward': 10.0}
     scale = defaults[head] if head in defaults else 1.0

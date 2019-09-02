@@ -1,5 +1,3 @@
-import keras
-from keras import backend as K
 import tensorflow as tf
 
 def cross_entropy_loss(y_true, y_pred):
@@ -27,9 +25,26 @@ def cpc_layer(preds, y_encoded):
     return ret
 
 def format_cpc_data(context, embedding, predict_terms, negative_samples):
-    x = tf.reshape(context, [-1] + context.shape[2:].as_list())
-    y_true = tf.reshape(embedding, [-1] + embedding.shape[2:].as_list())[:, None, None, :]
-    y_true = tf.tile(y_true, (1, predict_terms, negative_samples + 1, 1))
+    batch_size = context.shape[0].value
+    effective_horizon = context.shape[1].value - predict_terms
+    embedding_size = embedding.shape[-1].value
+    context_to_use = context[:, :-predict_terms, :]
+    x = tf.reshape(context_to_use, [-1] + context_to_use.shape[2:].as_list())
+
+    positives = tf.zeros(shape=(batch_size * effective_horizon, 0, embedding_size))
+    for i in range(predict_terms):
+        positives = tf.concat([positives,
+                              tf.reshape(embedding[:, i : i + effective_horizon], shape=(-1, 1, embedding_size))], axis=1)
+
+    flattened_embedding = tf.reshape(embedding, shape=(-1, embedding_size))
+    indexes = tf.random.uniform(shape=(batch_size * effective_horizon, predict_terms, negative_samples),
+                                maxval=flattened_embedding.shape[0].value, dtype=tf.dtypes.int32)
+    negatives = tf.gather(flattened_embedding, indexes)
+
+    y_true = tf.concat([positives[:, :, None], negatives], axis = 2)
+
+    # y_true = tf.reshape(embedding, [-1] + embedding.shape[2:].as_list())[:, None, None, :]
+    # y_true = tf.tile(y_true, (1, predict_terms, negative_samples + 1, 1))
 
     return x, y_true
 

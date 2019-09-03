@@ -229,7 +229,7 @@ def compute_objectives(posterior, prior, target, graph, config):
       objectives.append(Objective('overshooting', loss, min, include, exclude))
 
     elif name == 'cpc':
-      loss, acc = networks.cpc(features, graph.embedded)
+      loss, acc = networks.cpc(features, graph.embedded, predict_terms=config.future, negative_samples=config.negatives)
       objectives.append(Objective('cpc', loss, min, include, exclude))
       with tf.name_scope('cpc'):
         summaries.append(tf.summary.scalar('acc', acc))

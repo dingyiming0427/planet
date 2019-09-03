@@ -56,6 +56,8 @@ def cpc(config, params):
   config = _tasks(config, params)
   config = _loss_functions(config, params, cpc=True)
   config = _training_schedule(config, params)
+  config.future = params.get('future', 3)
+  config.negatives = params.get('negatives', 10)
   return config
 
 def debug(config, params):

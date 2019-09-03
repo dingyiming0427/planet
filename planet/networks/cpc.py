@@ -48,6 +48,12 @@ def format_cpc_data(context, embedding, predict_terms, negative_samples):
 
     return x, y_true
 
+def calc_acc(labels, logits):
+    correct_class = tf.argmax(logits, axis=-1)
+    predicted_class = tf.argmax(labels, axis=-1)
+    accuracy = tf.reduce_sum(tf.cast(tf.equal(correct_class, predicted_class), tf.int32)) / \
+                    tf.size(correct_class)
+    return accuracy
 
 def cpc(context, embedding, predict_terms=3, negative_samples=5):
     """
@@ -68,6 +74,7 @@ def cpc(context, embedding, predict_terms=3, negative_samples=5):
     labels_one = tf.ones(dtype=tf.float32, shape=(x.shape[0], predict_terms, 1))
     labels = tf.concat([labels_one, labels_zero], axis=-1)
     loss = cross_entropy_loss(labels, logits)
+    acc = calc_acc(labels, logits)
 
-    return loss
+    return loss, acc
 

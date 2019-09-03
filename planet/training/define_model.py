@@ -49,9 +49,6 @@ def define_model(data, trainer, config):
     heads[key] = tf.make_template(name, head, **kwargs)
     heads[key](dummy_features)  # Initialize weights.
 
-      # dummy_features = tf.zeros(shape=data['image'].shape[:2].as_list() + dummy_features.shape[-1:].as_list())
-      # heads['cpc'](dummy_features, tf.zeros(shape=data['image'].shape[:2].as_list() + [1024]))
-
   # Apply and optimize model.
   embedded = encoder(data)
   with tf.control_dependencies(dependencies):
@@ -59,10 +56,11 @@ def define_model(data, trainer, config):
   graph = tools.AttrDict(locals())
   prior, posterior = tools.unroll.closed_loop(
       cell, embedded, data['action'], config.debug)
-  objectives = utility.compute_objectives(
+  summaries_obj, objectives = utility.compute_objectives(
       posterior, prior, data, graph, config)
-  summaries, grad_norms = utility.apply_optimizers(
+  summaries_opt, grad_norms = utility.apply_optimizers(
       objectives, trainer, config)
+  summaries = summaries_obj + summaries_opt
 
   # Active data collection.
   with tf.variable_scope('collection'):

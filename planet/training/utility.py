@@ -193,6 +193,7 @@ def train(model_fn, datasets, logdir, config):
 def compute_objectives(posterior, prior, target, graph, config):
   raw_features = graph.cell.features_from_state(posterior)
   heads = graph.heads
+  summaries = []
   objectives = []
   for name, scale in config.loss_scales.items():
     if config.loss_scales[name] == 0.0:
@@ -228,15 +229,17 @@ def compute_objectives(posterior, prior, target, graph, config):
       objectives.append(Objective('overshooting', loss, min, include, exclude))
 
     elif name == 'cpc':
-      loss = networks.cpc(features, graph.embedded)
+      loss, acc = networks.cpc(features, graph.embedded)
       objectives.append(Objective('cpc', loss, min, include, exclude))
+      with tf.name_scope('cpc'):
+        summaries.append(tf.summary.scalar('acc', acc))
 
     else:
       logprob = heads[name](features).log_prob(target[name])
       objectives.append(Objective(name, logprob, max, include, exclude))
 
   objectives = [o._replace(value=tf.reduce_mean(o.value)) for o in objectives]
-  return objectives
+  return summaries, objectives
 
 
 def apply_optimizers(objectives, trainer, config):

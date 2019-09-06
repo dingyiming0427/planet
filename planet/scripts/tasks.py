@@ -74,6 +74,14 @@ def finger_spin(config, params):
       _dm_control_env, action_repeat, max_length, 'finger', 'spin', params)
   return Task('finger_spin', env_ctor, max_length, state_components)
 
+def finger_spin_distractor(config, params):
+  action_repeat = params.get('action_repeat', 2)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity', 'touch']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'finger_distractor', 'spin', params)
+  return Task('finger_spin_distractor', env_ctor, max_length, state_components)
+
 
 def cheetah_run(config, params):
   action_repeat = params.get('action_repeat', 4)
@@ -101,6 +109,15 @@ def cup_catch(config, params):
       params)
   return Task('cup_catch', env_ctor, max_length, state_components)
 
+def cup_catch_distractor(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'ball_in_cup_distractor', 'catch',
+      params)
+  return Task('cup_catch', env_ctor, max_length, state_components)
+
 
 def walker_walk(config, params):
   action_repeat = params.get('action_repeat', 2)
@@ -118,6 +135,14 @@ def reacher_easy(config, params):
   env_ctor = tools.bind(
       _dm_control_env, action_repeat, max_length, 'reacher', 'easy', params)
   return Task('reacher_easy', env_ctor, max_length, state_components)
+
+def reacher_easy_distractor(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity', 'to_target']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'reacher_distractor', 'easy', params)
+  return Task('reacher_easy_distractor', env_ctor, max_length, state_components)
 
 
 def gym_cheetah(config, params):

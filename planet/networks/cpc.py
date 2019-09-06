@@ -4,13 +4,13 @@ def cross_entropy_loss(y_true, y_pred):
     loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y_true, logits=y_pred, dim=2)
     return tf.reduce_mean(loss)
 
-def network_prediction(context, code_size, predict_terms):
+def network_prediction(context, code_size, predict_terms, name='image'):
 
     ''' Define the network mapping context to multiple embeddings '''
 
     outputs = []
     for i in range(predict_terms):
-        outputs.append(tf.layers.dense(context, units=code_size, name='z_t_{i}'.format(i=i)))
+        outputs.append(tf.layers.dense(context, units=code_size, name=name + '_' + 'z_t_{i}'.format(i=i)))
 
     # if len(outputs) == 1:
     #     output = keras.layers.Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])
@@ -43,9 +43,6 @@ def format_cpc_data(context, embedding, predict_terms, negative_samples):
 
     y_true = tf.concat([positives[:, :, None], negatives], axis = 2)
 
-    # y_true = tf.reshape(embedding, [-1] + embedding.shape[2:].as_list())[:, None, None, :]
-    # y_true = tf.tile(y_true, (1, predict_terms, negative_samples + 1, 1))
-
     return x, y_true
 
 def calc_acc(labels, logits):
@@ -55,26 +52,35 @@ def calc_acc(labels, logits):
                     tf.size(correct_class)
     return accuracy
 
-def cpc(context, embedding, predict_terms=3, negative_samples=5):
+def cpc(context, graph, predict_terms=3, negative_samples=5):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)
     :return: cross entropy loss
     """
     # x, preds, y_true
+    embedding = graph.embedded
+    reward = graph.data['reward'][:, :, None]
     x, y_true = format_cpc_data(context, embedding, predict_terms, negative_samples)
+    _, reward_y_true = format_cpc_data(context, reward, predict_terms, negative_samples)
 
     code_size = embedding.shape[-1].value
 
     preds = network_prediction(x, code_size, predict_terms)
+    reward_preds = network_prediction(x, 1, predict_terms, name='reward')
 
     logits = cpc_layer(preds, y_true)
+    reward_logits = cpc_layer(reward_preds, reward_y_true)
 
     labels_zero = tf.zeros(dtype=tf.float32, shape=(x.shape[0], predict_terms, negative_samples))
     labels_one = tf.ones(dtype=tf.float32, shape=(x.shape[0], predict_terms, 1))
     labels = tf.concat([labels_one, labels_zero], axis=-1)
+
     loss = cross_entropy_loss(labels, logits)
     acc = calc_acc(labels, logits)
 
-    return loss, acc
+    reward_loss = cross_entropy_loss(labels, reward_logits)
+    reward_acc = calc_acc(labels, reward_logits)
+
+    return loss, acc, reward_loss, reward_acc
 

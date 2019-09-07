@@ -230,7 +230,8 @@ def compute_objectives(posterior, prior, target, graph, config):
 
     elif name == 'cpc':
       loss, acc, reward_loss, reward_acc = networks.\
-        cpc(features, graph, predict_terms=config.future, negative_samples=config.negatives)
+        cpc(features, graph, predict_terms=config.future,
+            negative_samples=config.negatives, include_actions=config.include_actions)
       loss += reward_loss * config.cpc_reward_scale
       objectives.append(Objective('cpc', loss, min, include, exclude))
       with tf.name_scope('cpc'):

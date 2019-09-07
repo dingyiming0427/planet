@@ -24,11 +24,10 @@ def cpc_layer(preds, y_encoded):
     ret = tf.reduce_sum(dot_product, axis=-1)
     return ret
 
-def format_cpc_data(context, embedding, predict_terms, negative_samples):
-    batch_size = context.shape[0].value
-    effective_horizon = context.shape[1].value - predict_terms
+def format_cpc_data(context_to_use, embedding, predict_terms, negative_samples):
+    batch_size = context_to_use.shape[0].value
+    effective_horizon = context_to_use.shape[1].value
     embedding_size = embedding.shape[-1].value
-    context_to_use = context[:, :-predict_terms, :]
     x = tf.reshape(context_to_use, [-1] + context_to_use.shape[2:].as_list())
 
     positives = tf.zeros(shape=(batch_size * effective_horizon, 0, embedding_size))
@@ -67,17 +66,27 @@ def calc_acc(labels, logits):
                     tf.size(correct_class)
     return accuracy
 
-def cpc(context, graph, predict_terms=3, negative_samples=5):
+def cpc(context, graph, predict_terms=3, negative_samples=5, include_actions=False):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)
     :return: cross entropy loss
     """
     # x, preds, y_true
+    effective_horizon = context.shape[1].value - predict_terms
+    context_to_use =  context[:, :-predict_terms, :]
     embedding = graph.embedded
+    if include_actions:
+        actions = graph.data['action']
+        future_actions = tf.stack([tf.reshape(actions[:, i:i+predict_terms], (actions.shape[0].value, -1))
+                                    for i in range(effective_horizon)], axis=1)
+        assert future_actions.shape[1].value == effective_horizon
+
+        context_to_use = tf.concat([context_to_use, future_actions], axis=-1)
+
     reward = graph.data['reward'][:, :, None]
-    x, y_true = format_cpc_data(context, embedding, predict_terms, negative_samples)
-    _, reward_y_true = format_cpc_data(context, reward, predict_terms, negative_samples)
+    x, y_true = format_cpc_data(context_to_use, embedding, predict_terms, negative_samples)
+    _, reward_y_true = format_cpc_data(context_to_use, reward, predict_terms, negative_samples)
 
     code_size = embedding.shape[-1].value
 

@@ -111,10 +111,10 @@ def cpc(context, graph, predict_terms=3, negative_samples=5, include_actions=Fal
 def inverse_model(context, graph, contrastive=True, negative_samples=10):
     embedding = graph.embedded
     actions = graph.data['action']
-    x_context = context[:, :-2, :]
-    x_embedding = embedding[:, 2:, :]
+    x_context = context[:, :-1, :]
+    x_embedding = embedding[:, 1:, :]
     x = tf.concat([x_context, x_embedding], axis=-1)
-    y_action = actions[:, 1:-1, :]
+    y_action = actions[:, :-1, :]
 
     if contrastive:
         x, y_true = format_cpc_action(x, y_action, negative_samples)

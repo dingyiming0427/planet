@@ -45,6 +45,21 @@ def format_cpc_data(context, embedding, predict_terms, negative_samples):
 
     return x, y_true
 
+def format_cpc_action(x, y, negative_samples):
+    x = tf.reshape(x, [-1] + x.shape[2:].as_list())
+    positives = tf.reshape(y, (-1, 1, y.shape[-1].value))
+
+    flattened_y = tf.reshape(y, shape=(-1, y.shape[-1].value))
+    indexes = tf.random.uniform(shape=(flattened_y.shape[0].value, 1, negative_samples),
+                                maxval=flattened_y.shape[0].value, dtype=tf.dtypes.int32)
+
+    negatives = tf.gather(flattened_y, indexes)
+
+    y_true = tf.concat([positives[:, :, None], negatives], axis=2)
+
+    return x, y_true
+
+
 def calc_acc(labels, logits):
     correct_class = tf.argmax(logits, axis=-1)
     predicted_class = tf.argmax(labels, axis=-1)
@@ -83,4 +98,38 @@ def cpc(context, graph, predict_terms=3, negative_samples=5):
     reward_acc = calc_acc(labels, reward_logits)
 
     return loss, acc, reward_loss, reward_acc
+
+def inverse_model(context, graph, contrastive=True, negative_samples=10):
+    embedding = graph.embedded
+    actions = graph.data['action']
+    x_context = context[:, :-2, :]
+    x_embedding = embedding[:, 2:, :]
+    x = tf.concat([x_context, x_embedding], axis=-1)
+    y_action = actions[:, 1:-1, :]
+
+    if contrastive:
+        x, y_true = format_cpc_action(x, y_action, negative_samples)
+        preds = network_prediction(x, y_true.shape[-1].value, 1, name="inverse_model")
+
+        logits = cpc_layer(preds, y_true)
+        labels_zero = tf.zeros(dtype=tf.float32, shape=(x.shape[0], 1, negative_samples))
+        labels_one = tf.ones(dtype=tf.float32, shape=(x.shape[0], 1, 1))
+        labels = tf.concat([labels_one, labels_zero], axis=-1)
+
+        loss = cross_entropy_loss(labels, logits)
+        acc = calc_acc(labels, logits)
+
+        return loss, acc
+
+    else:
+        x_flattened = tf.reshape(x, (-1, x.shape[-1].value))
+        y_flattened = tf.reshape(y_action, (-1, y_action.shape[-1].value))
+
+        hidden = tf.layers.dense(x_flattened, units=1024, activation='relu')
+        hidden = tf.layers.dense(hidden, units=1024, activation='relu')
+        y_pred = tf.layers.dense(hidden, units=y_flattened.shape[-1].value)
+        loss = tf.reduce_mean(tf.square(y_flattened - y_pred))
+        return loss, None
+
+
 

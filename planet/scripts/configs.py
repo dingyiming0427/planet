@@ -194,6 +194,8 @@ def _loss_functions(config, params, cpc=False):
   config.loss_scales.overshooting = params.get('overshooting_scale', 0.0)
   if cpc:
       config.loss_scales.cpc = params.get('cpc_scale', 100.)
+      config.loss_scales.inverse_model = params.get('inverse_model_scale', 0.)
+      config.action_contrastive = params.get('action_contrastive', True)
       config.cpc_reward_scale = params.get('cpc_reward_scale', 0.)
   for head in config.heads:
     defaults = {'reward': 10.0}

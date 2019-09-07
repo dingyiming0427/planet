@@ -18,4 +18,4 @@ from __future__ import print_function
 
 from . import conv_ha
 from .basic import feed_forward
-from .cpc import cpc
+from .cpc import cpc, inverse_model

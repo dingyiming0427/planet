@@ -236,7 +236,13 @@ def compute_objectives(posterior, prior, target, graph, config):
       with tf.name_scope('cpc'):
         summaries.append(tf.summary.scalar('acc', acc))
         summaries.append(tf.summary.scalar('reward_acc', reward_acc))
-
+    elif name == 'inverse_model':
+      loss, acc = networks.inverse_model(features, graph, contrastive=config.action_contrastive,
+                                         negative_samples=config.negatives)
+      objectives.append(Objective('inverse_model', loss, min, include, exclude))
+      if config.action_contrastive:
+        with tf.name_scope('inverse_model'):
+          summaries.append(tf.summary.scalar('acc', acc))
     else:
       logprob = heads[name](features).log_prob(target[name])
       objectives.append(Objective(name, logprob, max, include, exclude))

@@ -23,7 +23,7 @@ from tensorflow_probability import distributions as tfd
 from planet import tools
 
 
-def encoder(obs):
+def encoder(obs, embedding_size=1024):
   """Extract deterministic features from an observation."""
   kwargs = dict(strides=2, activation=tf.nn.relu)
   hidden = tf.reshape(obs['image'], [-1] + obs['image'].shape[2:].as_list())
@@ -33,6 +33,8 @@ def encoder(obs):
   hidden = tf.layers.conv2d(hidden, 256, 4, **kwargs)
   hidden = tf.layers.flatten(hidden)
   assert hidden.shape[1:].as_list() == [1024], hidden.shape.as_list()
+  if embedding_size != 1024:
+    hidden = tf.layers.dense(hidden, units=embedding_size)
   hidden = tf.reshape(hidden, tools.shape(obs['image'])[:2] + [
       np.prod(hidden.shape[1:].as_list())])
   return hidden

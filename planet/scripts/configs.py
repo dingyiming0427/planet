@@ -125,7 +125,9 @@ def _model_components(config, params):
       num_layers=config.num_layers,
       units=config.num_units,
       activation=config.activation)
-  config.encoder = network.encoder
+  config.encoder = tools.bind(
+    network.encoder,
+    embedding_size=params.get('embedding_size', 1024))
   config.decoder = network.decoder
   config.heads = tools.AttrDict(_unlocked=True)
   config.heads.image = config.decoder

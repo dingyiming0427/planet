@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 def cross_entropy_loss(y_true, y_pred):
@@ -24,9 +25,10 @@ def cpc_layer(preds, y_encoded):
     ret = tf.reduce_sum(dot_product, axis=-1)
     return ret
 
-def format_cpc_data(context_to_use, embedding, predict_terms, negative_samples):
+def format_cpc_data(context_to_use, embedding, predict_terms, negative_samples, num_hard_negatives=0):
     batch_size = context_to_use.shape[0].value
     effective_horizon = context_to_use.shape[1].value
+    horizon = embedding.shape[1].value
     embedding_size = embedding.shape[-1].value
     x = tf.reshape(context_to_use, [-1] + context_to_use.shape[2:].as_list())
 
@@ -35,10 +37,33 @@ def format_cpc_data(context_to_use, embedding, predict_terms, negative_samples):
         positives = tf.concat([positives,
                               tf.reshape(embedding[:, i : i + effective_horizon], shape=(-1, 1, embedding_size))], axis=1)
 
+    negatives_hard = tf.zeros(shape=(batch_size * effective_horizon, 0, num_hard_negatives // 2 * 2, embedding_size))
+    if num_hard_negatives > 0:
+        assert num_hard_negatives < negative_samples
+        for i in range(predict_terms):
+            negatives_hard_curi = tf.zeros(shape=(batch_size * effective_horizon, 0, embedding_size))
+            for j in range(num_hard_negatives // 2):
+                to_add = tf.reshape(tf.gather(embedding, np.mod(np.arange(i + 2 + j, i + 2 + j + effective_horizon), horizon), axis=1),
+                                    shape=(-1, 1, embedding_size))
+                negatives_hard_curi = tf.concat([negatives_hard_curi, to_add], axis=1)
+                to_add = tf.reshape(tf.gather(embedding, np.mod(np.arange(i - 2 - j, i - 2 - j + effective_horizon), horizon), axis=1),
+                                    shape=(-1, 1, embedding_size))
+                import pdb; pdb.set_trace()
+                negatives_hard_curi = tf.concat([negatives_hard_curi, to_add], axis=1)
+            assert negatives_hard_curi.shape[1].value == num_hard_negatives // 2 * 2
+            negatives_hard = tf.concat([negatives_hard, negatives_hard_curi[:, None]], axis=1)
+
+
+
     flattened_embedding = tf.reshape(embedding, shape=(-1, embedding_size))
-    indexes = tf.random.uniform(shape=(batch_size * effective_horizon, predict_terms, negative_samples),
+    indexes = tf.random.uniform(shape=(batch_size * effective_horizon, predict_terms, negative_samples - num_hard_negatives // 2 * 2),
                                 maxval=flattened_embedding.shape[0].value, dtype=tf.dtypes.int32)
-    negatives = tf.gather(flattened_embedding, indexes)
+    negatives_easy = tf.gather(flattened_embedding, indexes)
+    
+    if not num_hard_negatives:
+        negatives = negatives_easy
+    else:
+        negatives = tf.concat([negatives_easy, negatives_hard], axis=2)
 
     y_true = tf.concat([positives[:, :, None], negatives], axis = 2)
 
@@ -66,7 +91,7 @@ def calc_acc(labels, logits):
                     tf.size(correct_class)
     return accuracy
 
-def cpc(context, graph, predict_terms=3, negative_samples=5, include_actions=False):
+def cpc(context, graph, predict_terms=3, negative_samples=5, hard_negative_samples=0, include_actions=False):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)
@@ -85,7 +110,8 @@ def cpc(context, graph, predict_terms=3, negative_samples=5, include_actions=Fal
         context_to_use = tf.concat([context_to_use, future_actions], axis=-1)
 
     reward = graph.data['reward'][:, :, None]
-    x, y_true = format_cpc_data(context_to_use, embedding, predict_terms, negative_samples)
+    x, y_true = format_cpc_data(context_to_use, embedding, predict_terms, negative_samples,
+                                num_hard_negatives=hard_negative_samples)
     _, reward_y_true = format_cpc_data(context_to_use, reward, predict_terms, negative_samples)
 
     code_size = embedding.shape[-1].value

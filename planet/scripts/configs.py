@@ -58,6 +58,7 @@ def cpc(config, params):
   config = _training_schedule(config, params)
   config.future = params.get('future', 3)
   config.negatives = params.get('negatives', 10)
+  config.hard_negatives = params.get('hard_negatives', 0)
   config.include_actions = params.get('include_actions', False)
   return config
 

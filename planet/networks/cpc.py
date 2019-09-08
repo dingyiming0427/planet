@@ -1,4 +1,5 @@
 import numpy as np
+from planet import tools
 import tensorflow as tf
 
 def cross_entropy_loss(y_true, y_pred):
@@ -24,6 +25,19 @@ def network_prediction(context, code_size, predict_terms, name='image'):
 
     return output
 
+def network_prediction_openloop(context, code_size, predict_terms, name='image'):
+
+    ''' Define the network mapping context to multiple embeddings '''
+    assert context.shape[1].value == predict_terms
+    outputs = []
+    for i in range(predict_terms):
+        output = tf.layers.dense(context[:, i], units=code_size, name=name + '_' + 'z_t_{i}'.format(i=i))
+        outputs.append(output)
+
+    output = tf.stack(outputs, axis=1)
+
+    return output
+
 def cpc_layer(preds, y_encoded):
     dot_product = preds[:, :, None, :] * y_encoded  # this should be broadcasted to N x T_pred x (negative_samples + 1) x code_size
     ret = tf.reduce_sum(dot_product, axis=-1)
@@ -40,7 +54,7 @@ def format_cpc_data(context_to_use, embedding, predict_terms, negative_samples, 
     positives = tf.zeros(shape=(N, 0, embedding_size))
     for i in range(predict_terms):
         positives = tf.concat([positives,
-                              tf.reshape(embedding[:, i : i + effective_horizon],
+                              tf.reshape(embedding[:, i + 1 : i + 1 + effective_horizon],
                                          shape=(-1, 1, embedding_size))], axis=1) # shape = N x predict_terms, embedding_size
     if negative_actions:
         return x, positives
@@ -56,7 +70,6 @@ def format_cpc_data(context_to_use, embedding, predict_terms, negative_samples, 
                 negatives_hard_curi = tf.concat([negatives_hard_curi, to_add], axis=1)
                 to_add = tf.reshape(tf.gather(embedding, np.mod(np.arange(i - 2 - j, i - 2 - j + effective_horizon), horizon), axis=1),
                                     shape=(-1, 1, embedding_size))
-                import pdb; pdb.set_trace()
                 negatives_hard_curi = tf.concat([negatives_hard_curi, to_add], axis=1)
             assert negatives_hard_curi.shape[1].value == num_hard_negatives // 2 * 2
             negatives_hard = tf.concat([negatives_hard, negatives_hard_curi[:, None]], axis=1)
@@ -99,33 +112,40 @@ def calc_acc(labels, logits):
     return accuracy
 
 def cpc(context, graph, predict_terms=3, negative_samples=5, hard_negative_samples=0, include_actions=False,
-        negative_actions=False):
+        negative_actions=False, cpc_openloop=False):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)
     :return: cross entropy loss
     """
     # x, preds, y_true
-    assert include_actions or not negative_actions # if negative actions, we must include actions
+    assert include_actions or not negative_actions  # if negative actions, we must include actions
     effective_horizon = context.shape[1].value - predict_terms
-    context_to_use =  context[:, :-predict_terms, :]
-    context_to_use = tf.reshape(context_to_use, [-1] + context_to_use.shape[2:].as_list())
     embedding = graph.embedded
-    if include_actions:
-        actions = graph.data['action']
-        future_actions = tf.stack([tf.reshape(actions[:, i:i+predict_terms], (actions.shape[0].value, -1))
-                                    for i in range(effective_horizon)], axis=1)
-        assert future_actions.shape[1].value == effective_horizon
-        future_actions = tf.reshape(future_actions, shape=(-1, actions.shape[-1].value * predict_terms))
+    actions = graph.data['action']
+    if cpc_openloop:
+        embedding_to_use = tf.concat([embedding[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
+        actions_to_use = tf.concat([actions[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
+        states = tools.unroll.open_loop(graph.cell, embedding_to_use, actions_to_use)
+        context_to_use = states['sample'] # shape = N x predict_terms x state_size
 
-        if negative_actions:
-            image_context = context_to_use
-            context_to_use = tf.concat([image_context, future_actions], axis=-1)[:, None]
-            for _ in range(negative_samples):
-                current_context = tf.concat([image_context, tf.random.uniform(future_actions.shape, minval=-1, maxval=1)], axis=-1)
-                context_to_use = tf.concat([context_to_use, current_context[:, None]], axis=1) # shape (N x negatives x action_dim)
-        else:
-            context_to_use = tf.concat([context_to_use, future_actions], axis=-1)
+    else:
+        context_to_use =  context[:, :-predict_terms, :]
+        context_to_use = tf.reshape(context_to_use, [-1] + context_to_use.shape[2:].as_list())
+        if include_actions:
+            future_actions = tf.stack([tf.reshape(actions[:, i:i+predict_terms], (actions.shape[0].value, -1))
+                                        for i in range(effective_horizon)], axis=1)
+            assert future_actions.shape[1].value == effective_horizon
+            future_actions = tf.reshape(future_actions, shape=(-1, actions.shape[-1].value * predict_terms))
+
+            if negative_actions:
+                image_context = context_to_use
+                context_to_use = tf.concat([image_context, future_actions], axis=-1)[:, None]
+                for _ in range(negative_samples):
+                    current_context = tf.concat([image_context, tf.random.uniform(future_actions.shape, minval=-1, maxval=1)], axis=-1)
+                    context_to_use = tf.concat([context_to_use, current_context[:, None]], axis=1) # shape (N x negatives x action_dim)
+            else:
+                context_to_use = tf.concat([context_to_use, future_actions], axis=-1)
 
     reward = graph.data['reward'][:, :, None]
     x, y_true = format_cpc_data(context_to_use, embedding, predict_terms, negative_samples,
@@ -135,8 +155,12 @@ def cpc(context, graph, predict_terms=3, negative_samples=5, hard_negative_sampl
 
     code_size = embedding.shape[-1].value
 
-    preds = network_prediction(x, code_size, predict_terms)
-    reward_preds = network_prediction(x, 1, predict_terms, name='reward')
+    if cpc_openloop:
+        preds = network_prediction_openloop(x, code_size, predict_terms)
+        reward_preds = network_prediction_openloop(x, 1, predict_terms, name='reward')
+    else:
+        preds = network_prediction(x, code_size, predict_terms)
+        reward_preds = network_prediction(x, 1, predict_terms, name='reward')
 
     if negative_actions:
         logits = cpc_layer(y_true, preds)

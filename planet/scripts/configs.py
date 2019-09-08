@@ -63,6 +63,7 @@ def cpc(config, params):
   config.include_actions = params.get('include_actions', False)
   if config.negative_actions:
     config.include_actions = True
+  config.cpc_openloop = params.get('cpc_openloop', False)
 
   return config
 

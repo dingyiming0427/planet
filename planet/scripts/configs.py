@@ -59,7 +59,11 @@ def cpc(config, params):
   config.future = params.get('future', 3)
   config.negatives = params.get('negatives', 10)
   config.hard_negatives = params.get('hard_negatives', 0)
+  config.negative_actions = params.get('negative_actions', False)
   config.include_actions = params.get('include_actions', False)
+  if config.negative_actions:
+    config.include_actions = True
+
   return config
 
 def debug(config, params):

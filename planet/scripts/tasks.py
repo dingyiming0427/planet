@@ -187,6 +187,7 @@ def _dm_control_env(
   if camera_id is None:
     camera_id = int(params.get('camera_id', 0))
   env = control.wrappers.DeepMindWrapper(env, (64, 64), camera_id=camera_id)
+  assert np.all(env.action_space.low == -1) and np.all(env.action_space.high == 1)
   env = control.wrappers.ActionRepeat(env, action_repeat)
   if normalize:
     env = control.wrappers.NormalizeActions(env)

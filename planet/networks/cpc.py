@@ -111,7 +111,7 @@ def calc_acc(labels, logits):
                     tf.size(correct_class)
     return accuracy
 
-def cpc(context, graph, predict_terms=3, negative_samples=5, hard_negative_samples=0, include_actions=False,
+def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_negative_samples=0, include_actions=False,
         negative_actions=False, cpc_openloop=False):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
@@ -124,10 +124,33 @@ def cpc(context, graph, predict_terms=3, negative_samples=5, hard_negative_sampl
     embedding = graph.embedded
     actions = graph.data['action']
     if cpc_openloop:
-        embedding_to_use = tf.concat([embedding[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
-        actions_to_use = tf.concat([actions[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
-        states = tools.unroll.open_loop(graph.cell, embedding_to_use, actions_to_use)
-        context_to_use = states['sample'] # shape = N x predict_terms x state_size
+        shape = tools.shape(actions)
+        length = tf.tile(tf.constant(shape[1])[None], [shape[0]])
+        _, priors, posteriors, mask = tools.overshooting(
+            graph.cell, {}, embedding, actions, length,
+            predict_terms, posterior)
+        posteriors, priors, mask = tools.nested.map(
+            lambda x: x[:, :, 1:], (posteriors, priors, mask))
+
+        # first_output = {
+        #     'observ': embedding,
+        # }
+        # progress_fn = lambda tensor: tf.concat([tensor[:, 1:], 0 * tensor[:, :1]], 1)
+        # other_outputs = tf.scan(
+        #     lambda past_output, _: tools.nested.map(progress_fn, past_output),
+        #     tf.range(predict_terms), first_output)
+        # sequences = tools.nested.map(
+        #     lambda lhs, rhs: tf.concat([lhs[None], rhs], 0),
+        #     first_output, other_outputs)
+
+        context_to_use = priors['sample'][:, :effective_horizon] # batch_size x predict_terms x effective_horizon x sample_size
+        context_to_use = tf.reshape(context_to_use, shape=[-1] + context_to_use.shape[2:].as_list()) # shape = N x predict_terms x sample_size
+
+
+        # embedding_to_use = tf.concat([embedding[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
+        # actions_to_use = tf.concat([actions[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
+        # states = tools.unroll.open_loop(graph.cell, embedding_to_use, actions_to_use)
+        # context_to_use = states['sample'] # shape = N x predict_terms x state_size
 
     else:
         context_to_use =  context[:, :-predict_terms, :]

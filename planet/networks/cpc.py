@@ -210,7 +210,7 @@ def inverse_model(context, graph, contrastive=True, negative_samples=10):
     x_context = context[:, :-1, :]
     x_embedding = embedding[:, 1:, :]
     x = tf.concat([x_context, x_embedding], axis=-1)
-    y_action = actions[:, :-1, :]
+    y_action = actions[:, 1:, :]
 
     if contrastive:
         x, y_true = format_cpc_action(x, y_action, negative_samples)

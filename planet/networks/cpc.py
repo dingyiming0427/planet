@@ -29,9 +29,14 @@ def network_prediction_openloop(context, code_size, predict_terms, name='image')
 
     ''' Define the network mapping context to multiple embeddings '''
     assert context.shape[1].value == predict_terms
+
     outputs = []
+    context_shape = context[:, 0].shape.as_list()
     for i in range(predict_terms):
-        output = tf.layers.dense(context[:, i], units=code_size, name=name + '_' + 'z_t_{i}'.format(i=i))
+        context_for_curpred = context[:, i]
+        output = tf.layers.dense(context_for_curpred, units=code_size, name=name + '_' + 'z_t_{i}'.format(i=i))
+        if len(context_shape) == 3:
+            output = tf.reshape(output, shape=(context_shape[0], context_shape[1], code_size))
         outputs.append(output)
 
     output = tf.stack(outputs, axis=1)
@@ -111,7 +116,7 @@ def calc_acc(labels, logits):
                     tf.size(correct_class)
     return accuracy
 
-def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_negative_samples=0, include_actions=False,
+def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_negative_samples=0, stack_actions=False,
         negative_actions=False, cpc_openloop=False):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
@@ -119,43 +124,26 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
     :return: cross entropy loss
     """
     # x, preds, y_true
-    assert include_actions or not negative_actions  # if negative actions, we must include actions
     effective_horizon = context.shape[1].value - predict_terms
     embedding = graph.embedded
     actions = graph.data['action']
     if cpc_openloop:
         shape = tools.shape(actions)
         length = tf.tile(tf.constant(shape[1])[None], [shape[0]])
-        _, priors, posteriors, mask = tools.overshooting(
-            graph.cell, {}, embedding, actions, length,
-            predict_terms, posterior)
-        posteriors, priors, mask = tools.nested.map(
-            lambda x: x[:, :, 1:], (posteriors, priors, mask))
-
-        # first_output = {
-        #     'observ': embedding,
-        # }
-        # progress_fn = lambda tensor: tf.concat([tensor[:, 1:], 0 * tensor[:, :1]], 1)
-        # other_outputs = tf.scan(
-        #     lambda past_output, _: tools.nested.map(progress_fn, past_output),
-        #     tf.range(predict_terms), first_output)
-        # sequences = tools.nested.map(
-        #     lambda lhs, rhs: tf.concat([lhs[None], rhs], 0),
-        #     first_output, other_outputs)
-
-        context_to_use = priors['sample'][:, :effective_horizon] # batch_size x predict_terms x effective_horizon x sample_size
-        context_to_use = tf.reshape(context_to_use, shape=[-1] + context_to_use.shape[2:].as_list()) # shape = N x predict_terms x sample_size
-
-
-        # embedding_to_use = tf.concat([embedding[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
-        # actions_to_use = tf.concat([actions[:, i:i + predict_terms] for i in range(effective_horizon)], axis=0)
-        # states = tools.unroll.open_loop(graph.cell, embedding_to_use, actions_to_use)
-        # context_to_use = states['sample'] # shape = N x predict_terms x state_size
+        context_to_use = get_overshoot_preds(graph, embedding, actions, length, predict_terms, posterior)
+        context_to_use =  merge_first_two_dim(context_to_use) # shape = N x predict_terms x sample_size
+        if negative_actions:
+            context_to_use = context_to_use[:, :, None]
+            for _ in range(negative_samples):
+                random_actions = tf.random.uniform(actions.shape, minval=-1, maxval=1)
+                negative_context = get_overshoot_preds(graph, embedding, random_actions, length, predict_terms, posterior)
+                negative_context = merge_first_two_dim(negative_context)[:, :, None]
+                context_to_use = tf.concat([context_to_use, negative_context], axis=2)
 
     else:
         context_to_use =  context[:, :-predict_terms, :]
         context_to_use = tf.reshape(context_to_use, [-1] + context_to_use.shape[2:].as_list())
-        if include_actions:
+        if stack_actions:
             future_actions = tf.stack([tf.reshape(actions[:, i:i+predict_terms], (actions.shape[0].value, -1))
                                         for i in range(effective_horizon)], axis=1)
             assert future_actions.shape[1].value == effective_horizon
@@ -237,4 +225,19 @@ def inverse_model(context, graph, contrastive=True, negative_samples=10):
         return loss, None
 
 
+def get_overshoot_preds(graph, embedding, actions, length, predict_terms, posterior):
+    _, priors, posteriors, mask = tools.overshooting(
+        graph.cell, {}, embedding, actions, length,
+        predict_terms, posterior)
+    posteriors, priors, mask = tools.nested.map(
+        lambda x: x[:, :, 1:], (posteriors, priors, mask))
+
+
+    context_to_use = priors['sample'][:, :-predict_terms]  # batch_size x effective_horizon x predict_terms x sample_size
+    # TODO: is sample the right feature to use?
+    
+    return context_to_use
+
+def merge_first_two_dim(tensor):
+    return tf.reshape(tensor, shape=[-1] + tensor.shape[2:].as_list())
 

@@ -232,7 +232,7 @@ def compute_objectives(posterior, prior, target, graph, config):
       loss, acc, reward_loss, reward_acc = networks.\
         cpc(features, graph, posterior, predict_terms=config.future,
             negative_samples=config.negatives, hard_negative_samples=config.hard_negatives,
-            include_actions=config.include_actions, negative_actions=config.negative_actions,
+            stack_actions=config.stack_actions, negative_actions=config.negative_actions,
             cpc_openloop=config.cpc_openloop)
       loss += reward_loss * config.cpc_reward_scale
       objectives.append(Objective('cpc', loss, min, include, exclude))

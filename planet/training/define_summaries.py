@@ -38,7 +38,7 @@ def define_summaries(graph, config, cleanups):
     mean = tf.clip_by_value(mean, 0.0, 1.0)
     return tfd.Independent(tfd.Normal(mean, 1.0), len(dist.event_shape))
   heads.unlock()
-  heads['image'] = lambda features: transform(graph.heads['image'](features))
+  # heads['image'] = lambda features: transform(graph.heads['image'](features))
   heads.lock()
 
   with tf.variable_scope('general'):
@@ -66,8 +66,8 @@ def define_summaries(graph, config, cleanups):
           name: head(prior_features)
           for name, head in heads.items()}
       summaries += summary.dist_summaries(prior_dists, graph.data, mask)
-      summaries += summary.image_summaries(
-          prior_dists['image'], config.postprocess_fn(graph.data['image']))
+      # summaries += summary.image_summaries(
+      #     prior_dists['image'], config.postprocess_fn(graph.data['image']))
     with tf.variable_scope('posterior'):
       posterior_features = graph.cell.features_from_state(posterior)
       posterior_dists = {
@@ -75,9 +75,9 @@ def define_summaries(graph, config, cleanups):
           for name, head in heads.items()}
       summaries += summary.dist_summaries(
           posterior_dists, graph.data, mask)
-      summaries += summary.image_summaries(
-          posterior_dists['image'],
-          config.postprocess_fn(graph.data['image']))
+      # summaries += summary.image_summaries(
+      #     posterior_dists['image'],
+      #     config.postprocess_fn(graph.data['image']))
 
   with tf.variable_scope('openloop'):
     state = tools.unroll.open_loop(
@@ -86,8 +86,8 @@ def define_summaries(graph, config, cleanups):
     state_features = graph.cell.features_from_state(state)
     state_dists = {name: head(state_features) for name, head in heads.items()}
     summaries += summary.dist_summaries(state_dists, graph.data, mask)
-    summaries += summary.image_summaries(
-        state_dists['image'], config.postprocess_fn(graph.data['image']))
+    # summaries += summary.image_summaries(
+    #     state_dists['image'], config.postprocess_fn(graph.data['image']))
     summaries += summary.state_summaries(graph.cell, state, posterior, mask)
     with tf.control_dependencies(plot_summaries):
       plot_summary = summary.prediction_summaries(

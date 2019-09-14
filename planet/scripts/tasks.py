@@ -186,13 +186,13 @@ def _dm_control_env(
     env = domain()
   if camera_id is None:
     camera_id = int(params.get('camera_id', 0))
-  env = control.wrappers.DeepMindWrapper(env, (64, 64), camera_id=camera_id)
+  env = control.wrappers.DeepMindWrapper(env, (32, 32), camera_id=camera_id)
   assert np.all(env.action_space.low == -1) and np.all(env.action_space.high == 1)
   env = control.wrappers.ActionRepeat(env, action_repeat)
   if normalize:
     env = control.wrappers.NormalizeActions(env)
   env = control.wrappers.MaximumDuration(env, max_length)
-  env = control.wrappers.PixelObservations(env, (64, 64), np.uint8, 'image')
+  env = control.wrappers.PixelObservations(env, (32, 32), np.uint8, 'image')
   env = control.wrappers.ConvertTo32Bit(env)
   return env
 

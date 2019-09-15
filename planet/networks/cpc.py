@@ -117,7 +117,7 @@ def calc_acc(labels, logits):
     return accuracy
 
 def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_negative_samples=0, stack_actions=False,
-        negative_actions=False, cpc_openloop=False):
+        negative_actions=False, cpc_openloop=False, gradient_penalty=False):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)
@@ -190,7 +190,21 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
     reward_loss = cross_entropy_loss(labels, reward_logits)
     reward_acc = calc_acc(labels, reward_logits)
 
-    return loss, acc, reward_loss, reward_acc
+    if gradient_penalty:
+        gpenalty = tf.constant(0, dtype=tf.float32)
+
+        for i in range(predict_terms):
+            for j in range(negative_samples + 1):
+                import pdb; pdb.set_trace()
+                grad = tf.gradients(logits[:, i, j], [x, y_true])
+                grad_concat = tf.concat([tf.contrib.layers.flatten(grad[0]),
+                                         tf.contrib.layers.flatten(grad[1][:, i, j])],
+                                        axis=-1)
+                gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad_concat, axis=-1) - 1, 2))
+
+        return loss, acc, reward_loss, reward_acc, gpenalty
+
+    return loss, acc, reward_loss, reward_acc, 0.
 
 def inverse_model(context, graph, contrastive=True, negative_samples=10):
     embedding = graph.embedded

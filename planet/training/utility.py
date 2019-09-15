@@ -240,16 +240,19 @@ def compute_objectives(posterior, prior, target, graph, config):
       objectives.append(Objective('overshooting', loss, min, include, exclude))
 
     elif name == 'cpc':
-      loss, acc, reward_loss, reward_acc = networks.\
+      loss, acc, reward_loss, reward_acc, gpenalty = networks.\
         cpc(features, graph, posterior, predict_terms=config.future,
             negative_samples=config.negatives, hard_negative_samples=config.hard_negatives,
             stack_actions=config.stack_actions, negative_actions=config.negative_actions,
-            cpc_openloop=config.cpc_openloop)
+            cpc_openloop=config.cpc_openloop, gradient_penalty=config.cpc_gpenalty_scale > 0)
       loss += reward_loss * config.cpc_reward_scale
+      loss += gpenalty * config.cpc_gpenalty_scale
       objectives.append(Objective('cpc', loss, min, include, exclude))
+
       with tf.name_scope('cpc'):
         summaries.append(tf.summary.scalar('acc', acc))
         summaries.append(tf.summary.scalar('reward_acc', reward_acc))
+        summaries.append(tf.summary.scalar('gpenalty', gpenalty))
     elif name == 'inverse_model':
       loss, acc = networks.inverse_model(features, graph, contrastive=config.action_contrastive,
                                          negative_samples=config.negatives)

@@ -213,6 +213,17 @@ def compute_objectives(posterior, prior, target, graph, config):
         loss = tf.maximum(0.0, loss - float(config.free_nats))
       objectives.append(Objective('divergence', loss, min, include, exclude))
 
+    elif name== 'latent_prior':
+      prev_states = tools.nested.map(lambda x: tf.reshape(x, (-1, x.shape[-1].value)), posterior)
+      prev_states = tools.nested.map(lambda x: tf.tile(x, multiples=(10, 1)), prev_states)
+      batch_size = prev_states['sample'].shape[0].value
+      prev_action = tf.random.uniform((batch_size, graph.data['action'].shape[-1].value), minval=-1, maxval=1)
+      obs = tf.zeros(shape=[batch_size,] + graph.embedded.shape[2:].as_list())
+      use_obs = tf.zeros((batch_size, 1), tf.bool)
+      (next_states, _), _ = graph.cell((obs, prev_action, use_obs), prev_states)
+      loss = graph.cell.divergence_from_states(prev_states, next_states)
+      objectives.append(Objective('latent_prior', loss, min, include, exclude))
+
     elif name == 'overshooting':
       shape = tools.shape(graph.data['action'])
       length = tf.tile(tf.constant(shape[1])[None], [shape[0]])

@@ -241,7 +241,7 @@ def compute_objectives(posterior, prior, target, graph, config):
 
     elif name == 'cpc':
       loss, acc, reward_loss, reward_acc, gpenalty = networks.\
-        cpc(features, graph, posterior, predict_terms=config.future,
+        cpc(features if config.include_belief else posterior['sample'], graph, posterior, predict_terms=config.future,
             negative_samples=config.negatives, hard_negative_samples=config.hard_negatives,
             stack_actions=config.stack_actions, negative_actions=config.negative_actions,
             cpc_openloop=config.cpc_openloop, gradient_penalty=config.cpc_gpenalty_scale > 0)

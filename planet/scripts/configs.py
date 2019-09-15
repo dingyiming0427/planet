@@ -62,6 +62,7 @@ def cpc(config, params):
   config.negative_actions = params.get('negative_actions', False)
   config.stack_actions = params.get('stack_actions', False)
   config.cpc_openloop = params.get('cpc_openloop', False)
+  config.include_belief = params.get('include_belief', True)
 
   return config
 

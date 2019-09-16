@@ -73,7 +73,7 @@ def define_summaries(graph, config, cleanups):
       #     prior_dists['image'], config.postprocess_fn(graph.data['image']))
       with tf.variable_scope('magnitude'):
         summaries += summary.magnitude_summary(prior['sample'], 'sample')
-        summaries += summary.magnitude_summary(tf.abs(prior['sample'][:, 1:] - prior['sample'][:, :-1]), 'diff')
+        summaries += summary.magnitude_summary(prior['sample'][:, 1:] - prior['sample'][:, :-1], 'diff')
 
     with tf.variable_scope('posterior'):
       posterior_features = graph.cell.features_from_state(posterior)
@@ -84,10 +84,13 @@ def define_summaries(graph, config, cleanups):
           posterior_dists, graph.data, mask)
       with tf.variable_scope('magnitude'):
         summaries += summary.magnitude_summary(posterior['sample'], 'sample')
-        summaries += summary.magnitude_summary(tf.abs(posterior['sample'][:, 1:] - posterior['sample'][:, :-1]), 'diff')
+        summaries += summary.magnitude_summary(posterior['sample'][:, 1:] - posterior['sample'][:, :-1], 'diff')
       # summaries += summary.image_summaries(
       #     posterior_dists['image'],
       #     config.postprocess_fn(graph.data['image']))
+    with tf.variable_scope('mixed'):
+      with tf.variable_scope('magnitude'):
+        summaries += summary.magnitude_summary(prior['sample'][:, 1:] - posterior['sample'][:, :-1], 'diff')
 
   with tf.variable_scope('openloop'):
     state = tools.unroll.open_loop(

@@ -63,6 +63,7 @@ def cpc(config, params):
   config.stack_actions = params.get('stack_actions', False)
   config.cpc_openloop = params.get('cpc_openloop', False)
   config.include_belief = params.get('include_belief', True)
+  config.latent_prior_marginal = params.get('latent_prior_marginal', True)
 
   return config
 

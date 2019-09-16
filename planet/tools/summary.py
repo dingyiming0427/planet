@@ -31,24 +31,17 @@ from planet.tools import shape as shapelib
 
 def calc_stats(tensor):
   mean_tensor = tf.reduce_mean(tensor, axis=np.arange(len(tensor.shape) - 1))
-  std_tensor = tf.math.reduce_std(tensor, axis=np.arange(len(tensor.shape) - 1))
-  mean_mean_tensor = tf.reduce_mean(mean_tensor)
-  std_mean_tensor = tf.math.reduce_std(mean_tensor)
-  mean_std_tensor = tf.reduce_mean(std_tensor)
-  std_std_tensor = tf.math.reduce_std(std_tensor)
-  return mean_mean_tensor, std_mean_tensor, mean_std_tensor, std_std_tensor
+  deviation = tensor - mean_tensor
+  return tf.reduce_mean(tf.reduce_sum(tf.square(deviation), axis=-1))
 
-def log_stats(name, mean_mean_tensor, std_mean_tensor, mean_std_tensor, std_std_tensor):
+def log_stats(name, variance_norm):
   summaries = []
-  summaries.append(tf.summary.scalar('mean_mean_%s' % name, mean_mean_tensor))
-  summaries.append(tf.summary.scalar('std_mean_%s' % name, std_mean_tensor))
-  summaries.append(tf.summary.scalar('mean_std_%s' % name, mean_std_tensor))
-  summaries.append(tf.summary.scalar('std_std_%s' % name, std_std_tensor))
+  summaries.append(tf.summary.scalar('variance_norm_%s' % name, variance_norm))
   return summaries
 
 def magnitude_summary(tensor, name):
-  mean_mean_emb, std_mean_emb, mean_std_emb, std_std_emb = calc_stats(tensor)
-  summary = log_stats(name, mean_mean_emb, std_mean_emb, mean_std_emb, std_std_emb)
+  variance_norm = calc_stats(tensor)
+  summary = log_stats(name, variance_norm)
   return summary
 
 def plot_summary(titles, lines, labels, name):

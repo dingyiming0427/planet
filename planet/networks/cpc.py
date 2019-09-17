@@ -194,11 +194,12 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
         gpenalty = tf.constant(0, dtype=tf.float32)
 
         for i in range(predict_terms):
-            for j in range(negative_samples + 1):
-                import pdb; pdb.set_trace()
-                grad = tf.gradients(logits[:, i, j], [x, y_true])
-                grad_concat = tf.concat([tf.contrib.layers.flatten(grad[0]),
-                                         tf.contrib.layers.flatten(grad[1][:, i, j])],
+            for j in range(1):
+                grad0 = tf.gradients(logits[:, i, j], [x])[0]
+                grad1 = tf.gradients(logits[:, i, j], graph.data['image'])[0][:, i + 1 : i + 1 + effective_horizon]
+                grad1 = merge_first_two_dim(grad1)
+                grad_concat = tf.concat([tf.contrib.layers.flatten(grad0),
+                                         tf.contrib.layers.flatten(grad1)],
                                         axis=-1)
                 gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad_concat, axis=-1) - 1, 2))
 

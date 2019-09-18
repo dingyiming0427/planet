@@ -56,11 +56,11 @@ def define_model(data, trainer, config):
   graph = tools.AttrDict(locals())
   prior, posterior = tools.unroll.closed_loop(
       cell, embedded, data['action'], config.debug)
-  summaries_obj, objectives = utility.compute_objectives(
+  objectives, cpc_logs = utility.compute_objectives(
       posterior, prior, data, graph, config)
-  summaries_opt, grad_norms = utility.apply_optimizers(
+  summaries, grad_norms = utility.apply_optimizers(
       objectives, trainer, config)
-  summaries = summaries_obj + summaries_opt
+
 
   # Active data collection.
   with tf.variable_scope('collection'):

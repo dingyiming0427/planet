@@ -193,8 +193,8 @@ def train(model_fn, datasets, logdir, config):
 def compute_objectives(posterior, prior, target, graph, config):
   raw_features = graph.cell.features_from_state(posterior)
   heads = graph.heads
-  summaries = []
   objectives = []
+  cpc_logs = {}
   for name, scale in config.loss_scales.items():
     if config.loss_scales[name] == 0.0:
       continue
@@ -256,24 +256,21 @@ def compute_objectives(posterior, prior, target, graph, config):
       loss += reward_loss * config.cpc_reward_scale
       loss += gpenalty * config.cpc_gpenalty_scale / config.loss_scales.cpc
       objectives.append(Objective('cpc', loss, min, include, exclude))
-
-      with tf.name_scope('cpc'):
-        summaries.append(tf.summary.scalar('acc', acc))
-        summaries.append(tf.summary.scalar('reward_acc', reward_acc))
-        summaries.append(tf.summary.scalar('gpenalty', gpenalty))
+      cpc_logs['acc'] = acc
+      cpc_logs['reward_acc'] = reward_acc
+      cpc_logs['gpenalty'] = gpenalty
     elif name == 'inverse_model':
       loss, acc = networks.inverse_model(features, graph, contrastive=config.action_contrastive,
                                          negative_samples=config.negatives)
       objectives.append(Objective('inverse_model', loss, min, include, exclude))
       if config.action_contrastive:
-        with tf.name_scope('inverse_model'):
-          summaries.append(tf.summary.scalar('acc', acc))
+        cpc_logs['inverse_model_acc'] = acc
     else:
       logprob = heads[name](features).log_prob(target[name])
       objectives.append(Objective(name, logprob, max, include, exclude))
 
   objectives = [o._replace(value=tf.reduce_mean(o.value)) for o in objectives]
-  return summaries, objectives
+  return objectives, cpc_logs
 
 
 def apply_optimizers(objectives, trainer, config):

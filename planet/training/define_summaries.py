@@ -59,6 +59,11 @@ def define_summaries(graph, config, cleanups):
   with tf.variable_scope('embedding_magnitude'):
     summaries += summary.magnitude_summary(graph.embedded, 'emb')
 
+  with tf.variable_scope('cpc'):
+    cpc_logs = graph.cpc_logs
+    for k, v in cpc_logs.items():
+      summaries.append(tf.summary.scalar(k, v))
+
   with tf.variable_scope('closedloop'):
     prior, posterior = tools.unroll.closed_loop(
         graph.cell, graph.embedded, graph.data['action'], config.debug)

@@ -208,6 +208,7 @@ def _loss_functions(config, params, cpc=False):
       config.action_contrastive = params.get('action_contrastive', True)
       config.cpc_reward_scale = params.get('cpc_reward_scale', 0.)
       config.cpc_gpenalty_scale = params.get('cpc_gpenalty_scale', 0.)
+      config.loss_scales.embedding_l2 = params.get('embedding_l2_scale', 0.)
   for head in config.heads:
     defaults = {'reward': 10.0}
     scale = defaults[head] if head in defaults else 1.0

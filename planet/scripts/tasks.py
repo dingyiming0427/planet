@@ -118,6 +118,21 @@ def cup_catch_distractor(config, params):
       params)
   return Task('cup_catch', env_ctor, max_length, state_components)
 
+def hopper_hop(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity', 'touch']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'hopper', 'hop', params)
+  return Task('hopper_hop', env_ctor, max_length, state_components)
+
+def hopper_stand(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity', 'touch']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'hopper', 'stand', params)
+  return Task('hopper_stand', env_ctor, max_length, state_components)
 
 def walker_walk(config, params):
   action_repeat = params.get('action_repeat', 2)

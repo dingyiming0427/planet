@@ -176,6 +176,15 @@ def pendulum_swingup(config, params):
     params)
   return Task('pendulum_swingup', env_ctor, max_length, state_components)
 
+def pointmass_easy(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity']
+  env_ctor = tools.bind(
+    _dm_control_env, action_repeat, max_length, 'point_mass', 'easy',
+    params)
+  return Task('pointmass_easy', env_ctor, max_length, state_components)
+
 
 def gym_cheetah(config, params):
   # Works with `isolate_envs: process`.

@@ -257,7 +257,7 @@ def compute_objectives(posterior, prior, target, graph, config):
             stack_actions=config.stack_actions, negative_actions=config.negative_actions,
             cpc_openloop=config.cpc_openloop, gradient_penalty=config.cpc_gpenalty_scale > 0)
       loss += reward_loss * config.cpc_reward_scale
-      loss += gpenalty * config.cpc_gpenalty_scale / config.loss_scales.cpc
+      loss += gpenalty * config.cpc_gpenalty_scale
       objectives.append(Objective('cpc', loss, min, include, exclude))
       cpc_logs['acc'] = acc
       cpc_logs['reward_acc'] = reward_acc

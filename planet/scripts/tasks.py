@@ -142,6 +142,14 @@ def walker_walk(config, params):
       _dm_control_env, action_repeat, max_length, 'walker', 'walk', params)
   return Task('walker_walk', env_ctor, max_length, state_components)
 
+def walker_walk_distractor(config, params):
+  action_repeat = params.get('action_repeat', 2)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'height', 'orientations', 'velocity']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'walker_distractor', 'walk', params)
+  return Task('walker_walk_distractor', env_ctor, max_length, state_components)
+
 
 def reacher_easy(config, params):
   action_repeat = params.get('action_repeat', 4)

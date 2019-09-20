@@ -195,7 +195,6 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
 
         for i in range(predict_terms):
             for j in range(negative_samples + 1):
-                import pdb; pdb.set_trace()
                 grad = tf.gradients(logits[:, i, j], [x, y_true])
                 grad_concat = tf.concat([tf.contrib.layers.flatten(grad[0]),
                                          tf.contrib.layers.flatten(grad[1][:, i, j])],

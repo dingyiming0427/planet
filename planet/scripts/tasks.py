@@ -167,6 +167,15 @@ def reacher_easy_distractor(config, params):
       _dm_control_env, action_repeat, max_length, 'reacher_distractor', 'easy', params)
   return Task('reacher_easy_distractor', env_ctor, max_length, state_components)
 
+def pendulum_swingup(config, params):
+  action_repeat = params.get('action_repeat', 8)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'orientation', 'velocity']
+  env_ctor = tools.bind(
+    _dm_control_env, action_repeat, max_length, 'pendulum', 'swingup',
+    params)
+  return Task('pendulum_swingup', env_ctor, max_length, state_components)
+
 
 def gym_cheetah(config, params):
   # Works with `isolate_envs: process`.

@@ -122,7 +122,7 @@ def _data_processing(config, params):
 
 
 def _model_components(config, params):
-  config.gradient_heads = params.get('gradient_heads', ['reward'])
+  config.gradient_heads = params.get('gradient_heads', ['image', 'reward'])
   network = getattr(networks, params.get('network', 'conv_ha'))
   config.activation = ACTIVATIONS[params.get('activation', 'relu')]
   config.num_layers = params.get('num_layers', 3)
@@ -135,9 +135,9 @@ def _model_components(config, params):
   config.encoder = tools.bind(
     network.encoder,
     embedding_size=params.get('embedding_size', 1024))
-  # config.decoder = network.decoder
+  config.decoder = network.decoder
   config.heads = tools.AttrDict(_unlocked=True)
-  # config.heads.image = config.decoder
+  config.heads.image = config.decoder
   size = params.get('model_size', 200)
   state_size = params.get('state_size', 30)
   model = params.get('model', 'rssm')
@@ -213,6 +213,9 @@ def _loss_functions(config, params, cpc=False):
     defaults = {'reward': 10.0}
     scale = defaults[head] if head in defaults else 1.0
     config.loss_scales[head] = params.get(head + '_loss_scale', scale)
+
+  if cpc:
+    config.loss_scales['image'] = 0.
 
   config.free_nats = params.get('free_nats', 3.0)
   config.overshooting_distance = params.get('overshooting_distance', 0)

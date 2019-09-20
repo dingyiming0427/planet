@@ -38,7 +38,7 @@ def define_summaries(graph, config, cleanups):
     mean = tf.clip_by_value(mean, 0.0, 1.0)
     return tfd.Independent(tfd.Normal(mean, 1.0), len(dist.event_shape))
   heads.unlock()
-  # heads['image'] = lambda features: transform(graph.heads['image'](features))
+  heads['image'] = lambda features: transform(graph.heads['image'](features))
   heads.lock()
 
   with tf.variable_scope('general'):
@@ -74,8 +74,8 @@ def define_summaries(graph, config, cleanups):
           name: head(prior_features)
           for name, head in heads.items()}
       summaries += summary.dist_summaries(prior_dists, graph.data, mask)
-      # summaries += summary.image_summaries(
-      #     prior_dists['image'], config.postprocess_fn(graph.data['image']))
+      summaries += summary.image_summaries(
+          prior_dists['image'], config.postprocess_fn(graph.data['image']))
       with tf.variable_scope('magnitude'):
         summaries += summary.magnitude_summary(prior['sample'], 'sample')
         summaries += summary.magnitude_summary(prior['sample'][:, 1:] - prior['sample'][:, :-1], 'diff')
@@ -90,9 +90,9 @@ def define_summaries(graph, config, cleanups):
       with tf.variable_scope('magnitude'):
         summaries += summary.magnitude_summary(posterior['sample'], 'sample')
         summaries += summary.magnitude_summary(posterior['sample'][:, 1:] - posterior['sample'][:, :-1], 'diff')
-      # summaries += summary.image_summaries(
-      #     posterior_dists['image'],
-      #     config.postprocess_fn(graph.data['image']))
+      summaries += summary.image_summaries(
+          posterior_dists['image'],
+          config.postprocess_fn(graph.data['image']))
     with tf.variable_scope('mixed'):
       with tf.variable_scope('magnitude'):
         summaries += summary.magnitude_summary(prior['sample'][:, 1:] - posterior['sample'][:, :-1], 'diff')
@@ -107,8 +107,8 @@ def define_summaries(graph, config, cleanups):
     with tf.variable_scope('magnitude'):
       summaries += summary.magnitude_summary(state['sample'], 'sample')
       summaries += summary.magnitude_summary(tf.abs(state['sample'][:, 1:] - state['sample'][:, :-1]), 'diff')
-    # summaries += summary.image_summaries(
-    #     state_dists['image'], config.postprocess_fn(graph.data['image']))
+    summaries += summary.image_summaries(
+        state_dists['image'], config.postprocess_fn(graph.data['image']))
     summaries += summary.state_summaries(graph.cell, state, posterior, mask)
     with tf.control_dependencies(plot_summaries):
       plot_summary = summary.prediction_summaries(

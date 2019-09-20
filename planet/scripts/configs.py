@@ -41,6 +41,7 @@ ACTIVATIONS = {
 def default(config, params):
   config.debug = False
   config.cpc = False
+  config.negatives = params.get('negatives', 10)
   config.loss_scales = tools.AttrDict(_unlocked=True)
   config = _data_processing(config, params)
   config = _model_components(config, params)
@@ -208,11 +209,11 @@ def _loss_functions(config, params, cpc=False):
   config.loss_scales.divergence = params.get('divergence_scale', 1.0)
   config.loss_scales.global_divergence = params.get('global_div_scale', 0.0)
   config.loss_scales.overshooting = params.get('overshooting_scale', 0.0)
+  config.loss_scales.inverse_model = params.get('inverse_model_scale', 0.)
+  config.action_contrastive = params.get('action_contrastive', True)
   if cpc:
       config.loss_scales.cpc = params.get('cpc_scale', 100.)
-      config.loss_scales.inverse_model = params.get('inverse_model_scale', 0.)
       config.loss_scales.latent_prior = params.get('latent_prior_scale', 0.)
-      config.action_contrastive = params.get('action_contrastive', True)
       config.cpc_reward_scale = params.get('cpc_reward_scale', 0.)
       config.cpc_gpenalty_scale = params.get('cpc_gpenalty_scale', 0.)
       config.loss_scales.embedding_l2 = params.get('embedding_l2_scale', 0.)

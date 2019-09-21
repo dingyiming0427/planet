@@ -48,6 +48,7 @@ def default(config, params):
   config = _tasks(config, params)
   config = _loss_functions(config, params)
   config = _training_schedule(config, params)
+  config.robustness_summary= params.get('robust_summary', False)
   return config
 
 def cpc(config, params):
@@ -67,6 +68,7 @@ def cpc(config, params):
   config.cpc_openloop = params.get('cpc_openloop', False)
   config.include_belief = params.get('include_belief', True)
   config.latent_prior_marginal = params.get('latent_prior_marginal', True)
+  config.robustness_summary= params.get('robust_summary', False)
 
   return config
 

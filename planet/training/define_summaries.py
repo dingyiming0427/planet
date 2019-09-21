@@ -19,6 +19,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from tensorflow_probability import distributions as tfd
+# import matplotlib.pyplot as plt
+
 
 from planet import tools
 from planet.training import utility
@@ -136,6 +138,32 @@ def define_summaries(graph, config, cleanups):
           name='should_simulate_' + params.task.name)
       summaries.append(sim_summary)
       sim_returns.append(sim_return)
+
+  if config.robustness_summary:
+    with tf.variable_scope('robustness'):
+      env = config.tasks[0].env_ctor()
+      num_states = 5
+      num_tries = 3
+      images = tf.zeros(shape=(0, 32, 32, 3))
+      for i in range(num_states):
+        state = np.random.uniform(low=[-1.8, -np.pi], high=[1.8, np.pi], size=(2,))
+        for j in range(num_tries):
+          env._physics.reset_from_obs(state)
+          env.task.get_observation(env._physics)
+          img = config.preprocess_fn(env._render_image())
+          # plt.imshow(img)
+          # plt.savefig("%d_%d.png" % (i, j))
+          images = tf.concat([images, img[None]], axis=0)
+      embedded = tf.reshape(graph.encoder(images), shape=(num_states, num_tries, -1))
+      # calculate variance within different representations of the same state
+      group_mean = tf.reduce_mean(embedded, axis=1, keepdims=True)
+      variance_within = tf.reduce_mean(tf.reduce_sum(tf.square(embedded - group_mean), axis=-1))
+      # calculate total variance
+      total_mean = tf.reduce_mean(embedded, axis=[0, 1], keepdims=True)
+      total_variance = tf.reduce_mean(tf.reduce_sum(tf.square(embedded - total_mean), axis=-1))
+      summaries.append(tf.summary.scalar('variance_within', variance_within))
+      summaries.append(tf.summary.scalar('total_variance', total_variance))
+      summaries.append(tf.summary.scalar('variance_ratio', variance_within / total_variance))
 
   summaries = tf.summary.merge(summaries)
   score = tf.reduce_mean(sim_returns)[None]

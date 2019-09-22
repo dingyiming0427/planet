@@ -142,8 +142,8 @@ def define_summaries(graph, config, cleanups):
   if config.robustness_summary:
     with tf.variable_scope('robustness'):
       env = config.tasks[0].env_ctor()
-      num_states = 5
-      num_tries = 3
+      num_states = 20
+      num_tries = 5
       images = tf.zeros(shape=(0, 32, 32, 3))
       for i in range(num_states):
         state = np.random.uniform(low=[-1.8, -np.pi], high=[1.8, np.pi], size=(2,))
@@ -164,6 +164,27 @@ def define_summaries(graph, config, cleanups):
       summaries.append(tf.summary.scalar('variance_within', variance_within))
       summaries.append(tf.summary.scalar('total_variance', total_variance))
       summaries.append(tf.summary.scalar('variance_ratio', variance_within / total_variance))
+
+      for i in range(num_states):
+        state = np.random.uniform(low=[-1.8, -np.pi], high=[1.8, np.pi], size=(2,))
+        for j in range(2):
+          env._physics.reset_from_obs(state)
+          env.task.get_observation(env._physics, no_dis=(j==0))
+          img = config.preprocess_fn(env._render_image())
+          # plt.imshow(img)
+          # plt.savefig("%d_%d.png" % (i, j))
+          images = tf.concat([images, img[None]], axis=0)
+      embedded = tf.reshape(graph.encoder(images), shape=(num_states, 2, -1))
+      # calculate variance within different representations of the same state
+      difference_norm = tf.norm(embedded[:, 0] - embedded[:, 1], axis=-1)
+      first_norm = tf.norm(embedded[:, 1], axis=-1)
+      ratio = tf.reduce_mean(difference_norm / first_norm)
+
+      summaries.append(tf.summary.scalar('difference_norm', difference_norm))
+      summaries.append(tf.summary.scalar('first_norm', first_norm))
+      summaries.append(tf.summary.scalar('ratio_of_norm', ratio))
+
+
 
   summaries = tf.summary.merge(summaries)
   score = tf.reduce_mean(sim_returns)[None]

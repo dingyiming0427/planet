@@ -193,13 +193,35 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
     if gradient_penalty:
         gpenalty = tf.constant(0, dtype=tf.float32)
 
-        for i in range(predict_terms):
-            for j in range(negative_samples + 1):
-                grad = tf.gradients(logits[:, i, j], [x, y_true])
-                grad_concat = tf.concat([tf.contrib.layers.flatten(grad[0]),
-                                         tf.contrib.layers.flatten(grad[1][:, i, j])],
-                                        axis=-1)
-                gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad_concat, axis=-1) - 1, 2))
+        # for i in range(predict_terms):
+        #     for j in range(negative_samples + 1):
+        #         grad = tf.gradients(logits[:, i, j], [x, y_true])
+        #         grad_concat = tf.concat([tf.contrib.layers.flatten(grad[0]),
+        #                                  tf.contrib.layers.flatten(grad[1][:, i, j])],
+        #                                 axis=-1)
+        #         gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad_concat, axis=-1) - 1, 2))
+
+        batch_size, horizon = graph.data['reward'].shape.as_list()
+        effective_horizon = horizon - predict_terms
+        f = tf.reshape(logits[:, :, 0], shape=(batch_size, effective_horizon, predict_terms))
+        s_t = x
+        o_tpk = graph.data['image']
+        # import pdb;
+        #
+        # pdb.set_trace()
+        counter = 0
+        for i in range(1):
+            for j in range(1):
+                for k in range(predict_terms):
+                    current_f = f[i, j, k]
+                    grad0 = tf.reshape(tf.gradients(current_f, s_t, stop_gradients=[s_t])[0], shape=(batch_size, effective_horizon, -1))[i, j]
+                    grad1 = tf.reshape(tf.gradients(current_f, o_tpk, stop_gradients=[s_t])[0][i, j + k + 1], shape=(-1,))
+                    grad = tf.concat([grad0, grad1], axis=-1)
+                    gpenalty += tf.pow(tf.norm(grad, axis=-1) - 1, 2)
+                    print('grad done')
+                    counter += 1
+
+        gpenalty /= counter
 
         return loss, acc, reward_loss, reward_acc, gpenalty
 

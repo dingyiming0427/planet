@@ -99,7 +99,7 @@ def data_summaries(data, postprocess_fn, histograms=False, name='data'):
     if postprocess_fn:
       image = postprocess_fn(image)
     summaries.append(image_strip_summary.image_strip_summary('image', image))
-  summaries.append('action_mean', tf.reduce_mean(tf.reduce_sum(tf.square(data['action']), axis=-1)))
+  summaries.append(tf.summary.scalar('action_mean', tf.reduce_mean(tf.reduce_sum(tf.square(data['action']), axis=-1))))
   return summaries
 
 

@@ -187,7 +187,7 @@ def pointmass_easy(config, params):
 
 def pr2_reach(config, params):
   action_repeat = params.get('action_repeat', 1)
-  max_length = 50 // action_repeat
+  max_length = 200 // action_repeat
   state_components = ['reward', 'position', 'velocity', 'ee_goal']
   env_ctor = tools.bind(
     _dm_control_env, action_repeat, max_length, 'pr2_dm', 'reach',

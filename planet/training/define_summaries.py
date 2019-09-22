@@ -180,8 +180,8 @@ def define_summaries(graph, config, cleanups):
       first_norm = tf.norm(embedded[:, 1], axis=-1)
       ratio = tf.reduce_mean(difference_norm / first_norm)
 
-      summaries.append(tf.summary.scalar('difference_norm', difference_norm))
-      summaries.append(tf.summary.scalar('first_norm', first_norm))
+      summaries.append(tf.summary.scalar('difference_norm', tf.reduce_mean(difference_norm)))
+      summaries.append(tf.summary.scalar('first_norm', tf.reduce_mean(first_norm)))
       summaries.append(tf.summary.scalar('ratio_of_norm', ratio))
 
 

@@ -126,7 +126,7 @@ def calc_acc(labels, logits):
     return accuracy
 
 def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_negative_samples=0, stack_actions=False,
-        negative_actions=False, cpc_openloop=False, gradient_penalty=False):
+        negative_actions=False, cpc_openloop=False, gradient_penalty=False, gpnalty_separate=True):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)
@@ -223,9 +223,11 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
             wk_d_ct = tf.transpose(tf.linalg.matmul(matrix, s_t, transpose_b=True))
             wk_d_ztk = tf.transpose(tf.linalg.matmul(matrix, z_tk, transpose_a=True, transpose_b=True))
             grad = tf.concat([wk_d_ct, wk_d_ztk], axis=-1)
-            # gpenalty += tf.reduce_mean(tf.square(tf.linalg.norm(wk_d_ct, axis=-1)))
-            # gpenalty += tf.reduce_mean(tf.square(tf.linalg.norm(wk_d_ztk, axis=-1)))
-            gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad, axis=-1) - 1, 2))
+            if gpenalty_separate:
+                gpenalty += tf.reduce_mean(tf.reduce_sum(tf.square(wk_d_ct), axis=-1))
+                gpenalty += tf.reduce_mean(tf.reduce_sum(tf.square(wk_d_ztk), axis=-1))
+            else:
+                gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad, axis=-1) - 1, 2))
 
         gpenalty /= predict_terms
 

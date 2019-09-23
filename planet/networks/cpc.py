@@ -126,7 +126,7 @@ def calc_acc(labels, logits):
     return accuracy
 
 def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_negative_samples=0, stack_actions=False,
-        negative_actions=False, cpc_openloop=False, gradient_penalty=False, gpnalty_separate=True):
+        negative_actions=False, cpc_openloop=False, gradient_penalty=False, gpenalty_separate=True):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)

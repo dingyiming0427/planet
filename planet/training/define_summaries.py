@@ -165,6 +165,7 @@ def define_summaries(graph, config, cleanups):
       summaries.append(tf.summary.scalar('total_variance', total_variance))
       summaries.append(tf.summary.scalar('variance_ratio', variance_within / total_variance))
 
+      images = tf.zeros(shape=(0, 32, 32, 3))
       for i in range(num_states):
         state = np.random.uniform(low=[-1.8, -np.pi], high=[1.8, np.pi], size=(2,))
         for j in range(2):

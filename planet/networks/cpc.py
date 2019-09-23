@@ -210,16 +210,15 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
         #
         # pdb.set_trace()
         counter = 0
-        for i in range(1):
-            for j in range(1):
-                for k in range(predict_terms):
-                    current_f = f[i, j, k]
-                    grad0 = tf.reshape(tf.gradients(current_f, s_t, stop_gradients=[s_t])[0], shape=(batch_size, effective_horizon, -1))[i, j]
-                    grad1 = tf.reshape(tf.gradients(current_f, o_tpk, stop_gradients=[s_t])[0][i, j + k + 1], shape=(-1,))
-                    grad = tf.concat([grad0, grad1], axis=-1)
-                    gpenalty += tf.pow(tf.norm(grad, axis=-1) - 1, 2)
-                    print('grad done')
-                    counter += 1
+
+        for k in range(predict_terms):
+            current_f = f[:, :, k]
+            grad0 = tf.reshape(tf.gradients(current_f, s_t, stop_gradients=[s_t])[0], shape=(batch_size, effective_horizon, -1))
+            grad1 = tf.reshape(tf.gradients(current_f, o_tpk, stop_gradients=[s_t])[0][:, k + 1 : k + 1 + effective_horizon], shape=(batch_size, effective_horizon, -1))
+            grad = tf.concat([grad0, grad1], axis=-1)
+            gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad, axis=-1) - 1, 2))
+            print('grad done')
+            counter += 1
 
         gpenalty /= counter
 

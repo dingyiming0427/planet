@@ -11,9 +11,18 @@ def network_prediction(context, code_size, predict_terms, name='image'):
     ''' Define the network mapping context to multiple embeddings '''
     context_shape = context.shape.as_list()
     outputs = []
+    kernels = []
     for i in range(predict_terms):
-        output = tf.layers.dense(tf.reshape(context, shape=(-1, context_shape[-1])),
-                                       units=code_size, name=name + '_' + 'z_t_{i}'.format(i=i))
+        matrix = tf.get_variable(name=name + '_' + 'z_t_{i}'.format(i=i),
+                                 shape=(code_size, context_shape[-1]),
+                                 dtype=tf.float32)
+        output = tf.linalg.matmul(matrix, tf.reshape(context, shape=(-1, context_shape[-1])), transpose_b=True)
+        output = tf.transpose(output)
+        # output = tf.layers.dense(tf.reshape(context, shape=(-1, context_shape[-1])),
+        #                                units=code_size, name=name + '_' + 'z_t_{i}'.format(i=i))
+        # kernels.append(tf.get_default_graph().get_tensor_by_name(
+        #     'graph/' + name + '_' + 'z_t_{i}'.format(i=i) + '/kernel:0'))
+        kernels.append(matrix)
         if len(context_shape) == 3:
             output = tf.reshape(output,shape=(context_shape[0], context_shape[1], code_size))
         outputs.append(output)
@@ -23,7 +32,7 @@ def network_prediction(context, code_size, predict_terms, name='image'):
     # else:
     output = tf.stack(outputs, axis=1)
 
-    return output
+    return output, kernels
 
 def network_prediction_openloop(context, code_size, predict_terms, name='image'):
 
@@ -170,8 +179,8 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
         preds = network_prediction_openloop(x, code_size, predict_terms)
         reward_preds = network_prediction_openloop(x, 1, predict_terms, name='reward')
     else:
-        preds = network_prediction(x, code_size, predict_terms)
-        reward_preds = network_prediction(x, 1, predict_terms, name='reward')
+        preds, kernels = network_prediction(x, code_size, predict_terms)
+        reward_preds, _ = network_prediction(x, 1, predict_terms, name='reward')
 
     if negative_actions:
         logits = cpc_layer(y_true, preds)
@@ -206,21 +215,19 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
         f = tf.reshape(logits[:, :, 0], shape=(batch_size, effective_horizon, predict_terms))
         s_t = x
         o_tpk = graph.data['image']
-        # import pdb;
-        #
-        # pdb.set_trace()
+
         counter = 0
-
         for k in range(predict_terms):
-            current_f = f[:, :, k]
-            grad0 = tf.reshape(tf.gradients(current_f, s_t, stop_gradients=[s_t])[0], shape=(batch_size, effective_horizon, -1))
-            grad1 = tf.reshape(tf.gradients(current_f, o_tpk, stop_gradients=[s_t])[0][:, k + 1 : k + 1 + effective_horizon], shape=(batch_size, effective_horizon, -1))
-            grad = tf.concat([grad0, grad1], axis=-1)
+            matrix = kernels[k]
+            z_tk = merge_first_two_dim(embedding[:, 1 + k : 1 + k + effective_horizon])
+            wk_d_ct = tf.transpose(tf.linalg.matmul(matrix, s_t, transpose_b=True))
+            wk_d_ztk = tf.transpose(tf.linalg.matmul(matrix, z_tk, transpose_a=True, transpose_b=True))
+            grad = tf.concat([wk_d_ct, wk_d_ztk], axis=-1)
+            # gpenalty += tf.reduce_mean(tf.square(tf.linalg.norm(wk_d_ct, axis=-1)))
+            # gpenalty += tf.reduce_mean(tf.square(tf.linalg.norm(wk_d_ztk, axis=-1)))
             gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad, axis=-1) - 1, 2))
-            print('grad done')
-            counter += 1
 
-        gpenalty /= counter
+        gpenalty /= predict_terms
 
         return loss, acc, reward_loss, reward_acc, gpenalty
 

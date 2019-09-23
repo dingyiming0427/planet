@@ -31,7 +31,9 @@ def encoder(obs, embedding_size=1024):
     hidden = tf.reshape(obs['image'], [-1] + obs['image'].shape[2:].as_list())
   else:
     hidden = obs
-  # hidden = tf.layers.conv2d(hidden, 32, 4, **kwargs)
+  img_size = hidden.shape[2:].as_list()[0]
+  if img_size == 64:
+    hidden = tf.layers.conv2d(hidden, 32, 4, **kwargs)
   hidden = tf.layers.conv2d(hidden, 64, 4, **kwargs)
   hidden = tf.layers.conv2d(hidden, 128, 4, **kwargs)
   hidden = tf.layers.conv2d(hidden, 256, 4, **kwargs)
@@ -51,10 +53,11 @@ def decoder(state, data_shape):
   hidden = tf.layers.dense(state, 1024, None)
   hidden = tf.reshape(hidden, [-1, 1, 1, hidden.shape[-1].value])
   hidden = tf.layers.conv2d_transpose(hidden, 128, 5, **kwargs)
-  # hidden = tf.layers.conv2d_transpose(hidden, 64, 5, **kwargs)
+  if data_shape[0] == 64:
+    hidden = tf.layers.conv2d_transpose(hidden, 64, 5, **kwargs)
   hidden = tf.layers.conv2d_transpose(hidden, 32, 6, **kwargs)
   mean = tf.layers.conv2d_transpose(hidden, 3, 6, strides=2)
-  assert mean.shape[1:].as_list() == [32, 32, 3], mean.shape
+  assert mean.shape[1:].as_list() == data_shape, mean.shape
   mean = tf.reshape(mean, tools.shape(state)[:-1] + data_shape)
   dist = tfd.Normal(mean, 1.0)
   dist = tfd.Independent(dist, len(data_shape))

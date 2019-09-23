@@ -187,7 +187,7 @@ def pointmass_easy(config, params):
 
 def pr2_reach(config, params):
   action_repeat = params.get('action_repeat', 1)
-  max_length = 50 // action_repeat
+  max_length = 200 // action_repeat
   state_components = ['reward', 'position', 'velocity', 'ee_goal']
   env_ctor = tools.bind(
     _dm_control_env, action_repeat, max_length, 'pr2_dm', 'reach',
@@ -235,13 +235,14 @@ def _dm_control_env(
     env = domain()
   if camera_id is None:
     camera_id = int(params.get('camera_id', 0))
-  env = control.wrappers.DeepMindWrapper(env, (32, 32), camera_id=camera_id)
+  image_size = params.get('image_size', 32)
+  env = control.wrappers.DeepMindWrapper(env, (image_size, image_size), camera_id=camera_id)
   if normalize:
     env = control.wrappers.NormalizeActions(env)
   assert np.all(env.action_space.low == -1) and np.all(env.action_space.high == 1)
   env = control.wrappers.ActionRepeat(env, action_repeat)
   env = control.wrappers.MaximumDuration(env, max_length)
-  env = control.wrappers.PixelObservations(env, (32, 32), np.uint8, 'image')
+  env = control.wrappers.PixelObservations(env, (image_size, image_size), np.uint8, 'image')
   env = control.wrappers.ConvertTo32Bit(env)
   return env
 

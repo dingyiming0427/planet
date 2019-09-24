@@ -236,7 +236,6 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
 
         # gpenalty /= predict_terms
         if gpenalty_mode == 2:
-            import pdb; pdb.set_trace()
             gpenalty += tf.reduce_mean(tf.square(s_t))
             gpenalty += tf.reduce_mean(tf.square(embedding))
 

@@ -264,7 +264,7 @@ def compute_objectives(posterior, prior, target, graph, config):
       cpc_logs['reward_acc'] = reward_acc
       cpc_logs['gpenalty'] = gpenalty
       for i in range(config.future):
-        cpc_logs['W_mag%d'%i] = tf.reduce_mean(kernels[i])
+        cpc_logs['W_mag%d'%i] = tf.reduce_mean(tf.square(kernels[i]))
     elif name == 'inverse_model':
       loss, acc = networks.inverse_model(features, graph, contrastive=config.action_contrastive,
                                          negative_samples=config.negatives)

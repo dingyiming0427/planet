@@ -231,9 +231,9 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
 
         gpenalty /= predict_terms
 
-        return loss, acc, reward_loss, reward_acc, gpenalty
+        return loss, acc, reward_loss, reward_acc, gpenalty, kernels
 
-    return loss, acc, reward_loss, reward_acc, 0.
+    return loss, acc, reward_loss, reward_acc, 0., kernels
 
 def inverse_model(context, graph, contrastive=True, negative_samples=10):
     embedding = graph.embedded

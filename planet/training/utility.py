@@ -251,7 +251,7 @@ def compute_objectives(posterior, prior, target, graph, config):
       objectives.append(Objective('overshooting', loss, min, include, exclude))
 
     elif name == 'cpc':
-      loss, acc, reward_loss, reward_acc, gpenalty = networks.\
+      loss, acc, reward_loss, reward_acc, gpenalty, kernels = networks.\
         cpc(features if config.include_belief else posterior['sample'], graph, posterior, predict_terms=config.future,
             negative_samples=config.negatives, hard_negative_samples=config.hard_negatives,
             stack_actions=config.stack_actions, negative_actions=config.negative_actions,
@@ -262,6 +262,8 @@ def compute_objectives(posterior, prior, target, graph, config):
       cpc_logs['acc'] = acc
       cpc_logs['reward_acc'] = reward_acc
       cpc_logs['gpenalty'] = gpenalty
+      for i in range(config.future):
+        cpc_logs['W_mag%d'%i] = tf.reduce_mean(kernels[i])
     elif name == 'inverse_model':
       loss, acc = networks.inverse_model(features, graph, contrastive=config.action_contrastive,
                                          negative_samples=config.negatives)

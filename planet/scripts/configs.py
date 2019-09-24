@@ -46,6 +46,7 @@ def default(config, params):
   config = _tasks(config, params)
   config = _loss_functions(config, params)
   config = _training_schedule(config, params)
+  config.negatives = params.get('negatives', 10)
   return config
 
 def cpc(config, params):

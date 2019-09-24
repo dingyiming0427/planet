@@ -69,6 +69,7 @@ def cpc(config, params):
   config.include_belief = params.get('include_belief', True)
   config.latent_prior_marginal = params.get('latent_prior_marginal', True)
   config.robustness_summary= params.get('robust_summary', False)
+  config.gpenalty_mode = params.get('gpenalty_mode', 0)
 
   return config
 

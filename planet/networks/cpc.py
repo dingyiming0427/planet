@@ -126,10 +126,11 @@ def calc_acc(labels, logits):
     return accuracy
 
 def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_negative_samples=0, stack_actions=False,
-        negative_actions=False, cpc_openloop=False, gradient_penalty=False, gpenalty_separate=True):
+        negative_actions=False, cpc_openloop=False, gradient_penalty=False, gpenalty_mode=0):
     """
     :param context: shape = (batch_size, chunk_length, context_size)
     :param embedding: shape = (batch_size, chunk_length, embedding_size)
+    :param gpenalty_mode: 0 is concatenated, 1 is separate, 2 is three terms
     :return: cross entropy loss
     """
     # x, preds, y_true
@@ -223,13 +224,21 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
             wk_d_ct = tf.transpose(tf.linalg.matmul(matrix, s_t, transpose_b=True))
             wk_d_ztk = tf.transpose(tf.linalg.matmul(matrix, z_tk, transpose_a=True, transpose_b=True))
             grad = tf.concat([wk_d_ct, wk_d_ztk], axis=-1)
-            if gpenalty_separate:
+            if gpenalty_mode == 0:
                 gpenalty += tf.reduce_mean(tf.reduce_sum(tf.square(wk_d_ct), axis=-1))
                 gpenalty += tf.reduce_mean(tf.reduce_sum(tf.square(wk_d_ztk), axis=-1))
-            else:
+            elif gpenalty_mode == 1:
                 gpenalty += tf.reduce_mean(tf.pow(tf.norm(grad, axis=-1) - 1, 2))
+            elif gpenalty_mode == 2:
+                gpenalty += tf.reduce_mean(tf.square(matrix))
+            else:
+                print("gpenalty mode not supported!")
 
-        gpenalty /= predict_terms
+        # gpenalty /= predict_terms
+        if gpenalty_mode == 2:
+            import pdb; pdb.set_trace()
+            gpenalty += tf.reduce_mean(tf.square(s_t))
+            gpenalty += tf.reduce_mean(tf.square(embedding))
 
         return loss, acc, reward_loss, reward_acc, gpenalty, kernels
 

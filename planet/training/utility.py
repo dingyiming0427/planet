@@ -255,7 +255,8 @@ def compute_objectives(posterior, prior, target, graph, config):
         cpc(features if config.include_belief else posterior['sample'], graph, posterior, predict_terms=config.future,
             negative_samples=config.negatives, hard_negative_samples=config.hard_negatives,
             stack_actions=config.stack_actions, negative_actions=config.negative_actions,
-            cpc_openloop=config.cpc_openloop, gradient_penalty=config.cpc_gpenalty_scale > 0)
+            cpc_openloop=config.cpc_openloop, gradient_penalty=config.cpc_gpenalty_scale > 0,
+            gpenalty_mode=config.gpenalty_mode)
       loss += reward_loss * config.cpc_reward_scale
       loss += gpenalty * config.cpc_gpenalty_scale
       objectives.append(Objective('cpc', loss, min, include, exclude))

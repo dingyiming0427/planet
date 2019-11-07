@@ -55,6 +55,15 @@ def cartpole_balance_distractor(config, params):
       params)
   return Task('cartpole_balance_distractor', env_ctor, max_length, state_components)
 
+def cartpole_balance_linear_distractor(config, params):
+  action_repeat = params.get('action_repeat', 8)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'cartpole_distractor', 'balance_linear_distractor',
+      params)
+  return Task('cartpole_balance_linear_distractor', env_ctor, max_length, state_components)
+
 
 def cartpole_swingup(config, params):
   action_repeat = params.get('action_repeat', 8)

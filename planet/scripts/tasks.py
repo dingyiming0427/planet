@@ -91,6 +91,14 @@ def finger_spin_distractor(config, params):
       _dm_control_env, action_repeat, max_length, 'finger_distractor', 'spin', params)
   return Task('finger_spin_distractor', env_ctor, max_length, state_components)
 
+def finger_spin_linear_distractor(config, params):
+  action_repeat = params.get('action_repeat', 2)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity', 'touch']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'finger_distractor', 'spin_linear', params)
+  return Task('finger_spin_linear_distractor', env_ctor, max_length, state_components)
+
 
 def cheetah_run(config, params):
   action_repeat = params.get('action_repeat', 4)
@@ -107,6 +115,14 @@ def cheetah_run_distractor(config, params):
   env_ctor = tools.bind(
       _dm_control_env, action_repeat, max_length, 'cheetah_distractor', 'run', params)
   return Task('cheetah_run_distractor', env_ctor, max_length, state_components)
+
+def cheetah_run_linear_distractor(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'cheetah_distractor', 'run_linear', params)
+  return Task('cheetah_run_linear_distractor', env_ctor, max_length, state_components)
 
 
 def cup_catch(config, params):
@@ -175,6 +191,14 @@ def reacher_easy_distractor(config, params):
   env_ctor = tools.bind(
       _dm_control_env, action_repeat, max_length, 'reacher_distractor', 'easy', params)
   return Task('reacher_easy_distractor', env_ctor, max_length, state_components)
+
+def reacher_easy_linear_distractor(config, params):
+  action_repeat = params.get('action_repeat', 4)
+  max_length = 1000 // action_repeat
+  state_components = ['reward', 'position', 'velocity', 'to_target']
+  env_ctor = tools.bind(
+      _dm_control_env, action_repeat, max_length, 'reacher_distractor', 'easy_linear', params)
+  return Task('reacher_easy_linear_distractor', env_ctor, max_length, state_components)
 
 def pendulum_swingup(config, params):
   action_repeat = params.get('action_repeat', 8)

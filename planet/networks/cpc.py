@@ -155,9 +155,9 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
         context_to_use = tf.reshape(context_to_use, [-1] + context_to_use.shape[2:].as_list())
         if stack_actions:
             future_actions = tf.stack([tf.reshape(actions[:, i:i+predict_terms], (actions.shape[0].value, -1))
-                                        for i in range(effective_horizon)], axis=1)
+                                        for i in range(effective_horizon)], axis=1)  # batch x effective_horizon x (predict_terms * action_dim)
             assert future_actions.shape[1].value == effective_horizon
-            future_actions = tf.reshape(future_actions, shape=(-1, actions.shape[-1].value * predict_terms))
+            future_actions = merge_first_two_dim(future_actions)
 
             if negative_actions:
                 image_context = context_to_use
@@ -241,7 +241,7 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
 
         return loss, acc, reward_loss, reward_acc, gpenalty, kernels
 
-    return loss, acc, reward_loss, reward_acc, 0., kernels
+    return loss, acc, reward_loss, reward_acc, 0., None if cpc_openloop else kernels
 
 def inverse_model(context, graph, contrastive=True, negative_samples=10):
     embedding = graph.embedded

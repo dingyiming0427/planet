@@ -158,6 +158,9 @@ def cpc(context, graph, posterior, predict_terms=3, negative_samples=5, hard_neg
                                         for i in range(effective_horizon)], axis=1)  # batch x effective_horizon x (predict_terms * action_dim)
             assert future_actions.shape[1].value == effective_horizon
             future_actions = merge_first_two_dim(future_actions)
+            future_actions = tf.layers.dense(future_actions, units=256, activation='relu')
+            future_actions = tf.layers.dense(future_actions, units=256, activation='relu')
+            future_actions = tf.layers.dense(future_actions, units=30, activation='linear') # 30 is the size of the state space
 
             if negative_actions:
                 image_context = context_to_use
